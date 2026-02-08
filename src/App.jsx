@@ -504,15 +504,27 @@ function ConfessionPrep({ onBack }) {
 // ═══════════════════════════════════════════════════════
 // DAILY EXAMEN
 // ═══════════════════════════════════════════════════════
-function DailyExamen({ onBack, addJournalEntry }) {
+function DailyExamen({ onBack, addJournalEntry, user, signIn }) {
   const { t, translations } = useLocale();
   const examenSteps = translations?.content?.examenSteps || [];
   const [si, setSi] = useState(0);
   const [notes, setNotes] = useState({});
-  const [phase, setPhase] = useState("praying"); // praying | saving | done
+  const [phase, setPhase] = useState("praying"); // praying | saving | done | prompt_signin
+  const [pendingEntry, setPendingEntry] = useState(null);
+  const [didSave, setDidSave] = useState(false);
+
+  // When user signs in after "prompt_signin", save pending entry and go to done
+  useEffect(() => {
+    if (phase !== "prompt_signin" || !addJournalEntry || !pendingEntry) return;
+    addJournalEntry(pendingEntry);
+    setPendingEntry(null);
+    setDidSave(true);
+    setPhase("saving");
+    const tId = setTimeout(() => setPhase("done"), 1200);
+    return () => clearTimeout(tId);
+  }, [phase, addJournalEntry, pendingEntry]);
 
   const handleComplete = () => {
-    setPhase("saving");
     const noteValues = Object.values(notes).filter(Boolean);
     if (noteValues.length > 0) {
       const labeledNotes = {};
@@ -521,18 +533,47 @@ function DailyExamen({ onBack, addJournalEntry }) {
       });
       const entry = { notes: labeledNotes, type: "examen" };
       if (addJournalEntry) {
+        setDidSave(true);
         addJournalEntry(entry);
+        setPhase("saving");
+        setTimeout(() => setPhase("done"), 1200);
       } else {
-        try {
-          const r = localStorage.getItem("lumen_journal_guest");
-          let entries = r ? JSON.parse(r) : [];
-          entries.push({ ...entry, date: new Date().toISOString() });
-          localStorage.setItem("lumen_journal_guest", JSON.stringify(entries));
-        } catch {}
+        setPendingEntry(entry);
+        setPhase("prompt_signin");
       }
+    } else {
+      setDidSave(false);
+      setPhase("done");
     }
-    setTimeout(() => setPhase("done"), 1200);
   };
+
+  if (phase === "prompt_signin") {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <Header title={t("examen.title")} onBack={onBack} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>🔐</div>
+          <h3 style={{ fontFamily: S.heading, fontSize: 22, color: S.gold, marginBottom: 10 }}>{t("examen.signInToSave")}</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 320, marginTop: 20 }}>
+            <button onClick={signIn} style={{
+              background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10,
+              padding: "12px 20px", cursor: "pointer", color: S.text, fontFamily: S.body, fontSize: 14,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            }}>
+              <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              {t("common.signInWithGoogle")}
+            </button>
+            <button onClick={() => { setPendingEntry(null); setPhase("done"); setDidSave(false); }} style={{
+              background: "none", border: "1px solid rgba(191,155,48,0.25)", borderRadius: 10,
+              padding: "12px 20px", cursor: "pointer", color: S.textDim, fontFamily: S.body, fontSize: 13,
+            }}>
+              {t("examen.continueWithoutSaving")}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (phase === "saving") {
     return (
@@ -553,7 +594,7 @@ function DailyExamen({ onBack, addJournalEntry }) {
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 18, animation: "float 3s ease-in-out infinite" }}>🕯️</div>
           <h2 style={{ fontFamily: S.heading, fontSize: 26, color: S.gold, marginBottom: 8 }}>{t("examen.wellDone")}</h2>
-          <p style={{ fontFamily: S.body, fontSize: 13.5, color: "rgba(245,236,215,0.55)", maxWidth: 360, lineHeight: 1.7, marginBottom: 24 }}>{t("examen.reflectionsSaved")}</p>
+          <p style={{ fontFamily: S.body, fontSize: 13.5, color: "rgba(245,236,215,0.55)", maxWidth: 360, lineHeight: 1.7, marginBottom: 24 }}>{didSave ? t("examen.reflectionsSaved") : t("examen.completeNoSave")}</p>
           <Btn onClick={onBack} color={S.gold}>{t("common.returnHome")}</Btn>
         </div>
       </div>
@@ -755,7 +796,7 @@ export default function Lumen() {
         {view === VIEWS.ROSARY && <RosarySelect onSelect={s => { setRosarySet(s); setView(VIEWS.ROSARY_PRAY); }} onBack={() => setView(VIEWS.HOME)} />}
         {view === VIEWS.ROSARY_PRAY && <RosaryPray mysterySet={rosarySet} onBack={() => setView(VIEWS.HOME)} />}
         {view === VIEWS.CONFESSION && <ConfessionPrep onBack={() => setView(VIEWS.HOME)} />}
-        {view === VIEWS.EXAMEN && <DailyExamen onBack={() => setView(VIEWS.HOME)} addJournalEntry={user ? journal.addEntry : null} />}
+        {view === VIEWS.EXAMEN && <DailyExamen onBack={() => setView(VIEWS.HOME)} addJournalEntry={user ? journal.addEntry : null} user={user} signIn={signIn} />}
         {view === VIEWS.PRAYERS && <PrayerLibrary onBack={() => setView(VIEWS.HOME)} />}
         {view === VIEWS.JOURNAL && <JournalView onBack={() => setView(VIEWS.HOME)} journal={journal} user={user} signIn={signIn} />}
       </div>
