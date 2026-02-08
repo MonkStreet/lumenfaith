@@ -3,11 +3,20 @@ import { useLocale } from "./i18n/LocaleContext";
 import { LOCALES } from "./i18n/translations";
 import Footer from "./components/Footer";
 
-const GOSPEL_RSS = {
-  [LOCALES.ES_ES]: typeof import.meta !== "undefined" && import.meta.env?.DEV ? "/api/gospel-es" : "https://www.aciprensa.com/rss/evangelio",
-  [LOCALES.EN_US]: typeof import.meta !== "undefined" && import.meta.env?.DEV ? "/api/gospel-en" : "https://bible.usccb.org/readings.rss",
+const GOSPEL_RSS_DIRECT = {
+  [LOCALES.ES_ES]: "https://www.aciprensa.com/rss/evangelio",
+  [LOCALES.EN_US]: "https://bible.usccb.org/readings.rss",
 };
 const GOSPEL_CACHE_PREFIX = "lumen_gospel_";
+// In production, RSS feeds block CORS; use a CORS proxy so the browser can fetch them.
+const CORS_PROXY = "https://corsproxy.io/?";
+function getGospelRssUrl(locale) {
+  const direct = GOSPEL_RSS_DIRECT[locale] || GOSPEL_RSS_DIRECT[LOCALES.EN_US];
+  if (typeof import.meta !== "undefined" && import.meta.env?.DEV) {
+    return locale === LOCALES.ES_ES ? "/api/gospel-es" : "/api/gospel-en";
+  }
+  return CORS_PROXY + encodeURIComponent(direct);
+}
 
 // ═══════════════════════════════════════════════════════
 // LUMEN — Catholic Spiritual Companion
@@ -559,7 +568,7 @@ function DailyGospel({ onBack }) {
       }
     } catch (_) {}
 
-    const url = GOSPEL_RSS[locale] || GOSPEL_RSS[LOCALES.EN_US];
+    const url = getGospelRssUrl(locale);
     fetch(url, { mode: "cors" })
       .then((r) => (r.ok ? r.text() : Promise.reject(new Error("Fetch failed"))))
       .then((xmlText) => {
