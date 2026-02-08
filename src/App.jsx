@@ -116,6 +116,27 @@ function OutBtn({ children, onClick, disabled }) {
 function useAuth() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [googleReady, setGoogleReady] = useState(false);
+  const [authError, setAuthError] = useState(null);
+  const signInPopupTimeoutRef = useRef(null);
+  const hasRealClientId = CONFIG.GOOGLE_CLIENT_ID && CONFIG.GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+
+  const handleCredentialResponse = useCallback((response) => {
+    if (signInPopupTimeoutRef.current) {
+      clearTimeout(signInPopupTimeoutRef.current);
+      signInPopupTimeoutRef.current = null;
+    }
+    setAuthError(null);
+    try {
+      const payload = JSON.parse(atob(response.credential.split(".")[1]));
+      const userData = { id: payload.sub, name: payload.name, email: payload.email, picture: payload.picture };
+      setUser(userData);
+      try { localStorage.setItem("lumen_user", JSON.stringify(userData)); } catch {}
+    } catch (e) {
+      console.error("Auth error:", e);
+      setAuthError("signInFailed");
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -124,49 +145,59 @@ function useAuth() {
     } catch {}
     setLoading(false);
 
-    // Load Google Identity Services
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
     script.onload = () => {
-      if (window.google && CONFIG.GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com") {
-        window.google.accounts.id.initialize({
-          client_id: CONFIG.GOOGLE_CLIENT_ID,
-          callback: handleCredentialResponse,
-        });
+      if (window.google && hasRealClientId) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: CONFIG.GOOGLE_CLIENT_ID,
+            callback: (response) => handleCredentialResponse(response),
+          });
+          setGoogleReady(true);
+        } catch (e) {
+          console.error("Google init error:", e);
+        }
+      } else if (!hasRealClientId) {
+        setGoogleReady(true);
       }
     };
+    script.onerror = () => setGoogleReady(true);
     document.head.appendChild(script);
-    return () => { try { document.head.removeChild(script); } catch {} };
-  }, []);
+    return () => {
+      if (signInPopupTimeoutRef.current) clearTimeout(signInPopupTimeoutRef.current);
+      try { document.head.removeChild(script); } catch {}
+    };
+  }, [hasRealClientId, handleCredentialResponse]);
 
-  const handleCredentialResponse = async (response) => {
-    try {
-      // Decode JWT token (payload is the second part)
-      const payload = JSON.parse(atob(response.credential.split(".")[1]));
-      const userData = { id: payload.sub, name: payload.name, email: payload.email, picture: payload.picture };
-      setUser(userData);
-      try { localStorage.setItem("lumen_user", JSON.stringify(userData)); } catch {}
-    } catch (e) { console.error("Auth error:", e); }
-  };
-
-  const signIn = () => {
-    if (window.google && CONFIG.GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com") {
-      window.google.accounts.id.prompt();
-    } else {
-      // Demo mode — create a local user
+  const signIn = useCallback(() => {
+    setAuthError(null);
+    if (hasRealClientId && window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.prompt();
+        signInPopupTimeoutRef.current = setTimeout(() => {
+          signInPopupTimeoutRef.current = null;
+          setAuthError("popupBlocked");
+        }, 10000);
+      } catch (e) {
+        console.error("Sign-in prompt error:", e);
+        setAuthError("popupBlocked");
+      }
+    } else if (!hasRealClientId) {
       const demo = { id: "local_user", name: "Pilgrim", email: "local", picture: null };
       setUser(demo);
-      try { localStorage.setItem("lumen_user", JSON.stringify(demo)); } catch {};
+      try { localStorage.setItem("lumen_user", JSON.stringify(demo)); } catch {}
     }
-  };
+  }, [hasRealClientId]);
 
-  const signOut = () => {
+  const signOut = useCallback(() => {
     setUser(null);
+    setAuthError(null);
     try { localStorage.removeItem("lumen_user"); } catch {}
-  };
+  }, []);
 
-  return { user, loading, signIn, signOut };
+  return { user, loading, signIn, signOut, googleReady, authError };
 }
 
 function useJournal(user) {
@@ -699,7 +730,7 @@ function DailyGospel({ onBack }) {
 // ═══════════════════════════════════════════════════════
 // DAILY EXAMEN
 // ═══════════════════════════════════════════════════════
-function DailyExamen({ onBack, addJournalEntry, user, signIn }) {
+function DailyExamen({ onBack, addJournalEntry, user, signIn, googleReady = true, authError = null }) {
   const { t, translations } = useLocale();
   const examenSteps = translations?.content?.examenSteps || [];
   const [si, setSi] = useState(0);
@@ -750,14 +781,15 @@ function DailyExamen({ onBack, addJournalEntry, user, signIn }) {
           <div style={{ fontSize: 40, marginBottom: 16 }}>🔐</div>
           <h3 style={{ fontFamily: S.heading, fontSize: 22, color: S.gold, marginBottom: 10 }}>{t("examen.signInToSave")}</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 320, marginTop: 20 }}>
-            <button onClick={signIn} style={{
+            <button onClick={signIn} disabled={!googleReady} style={{
               background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10,
-              padding: "12px 20px", cursor: "pointer", color: S.text, fontFamily: S.body, fontSize: 14,
+              padding: "12px 20px", cursor: googleReady ? "pointer" : "wait", color: S.text, fontFamily: S.body, fontSize: 14,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
             }}>
               <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-              {t("common.signInWithGoogle")}
+              {googleReady ? t("common.signInWithGoogle") : t("common.loadingSignIn")}
             </button>
+            {authError === "popupBlocked" && <p style={{ fontFamily: S.body, fontSize: 11, color: S.textDim, marginTop: 4 }}>{t("common.signInPopupBlocked")}</p>}
             <button onClick={() => { setPendingEntry(null); setPhase("done"); setDidSave(false); }} style={{
               background: "none", border: "1px solid rgba(191,155,48,0.25)", borderRadius: 10,
               padding: "12px 20px", cursor: "pointer", color: S.textDim, fontFamily: S.body, fontSize: 13,
@@ -875,7 +907,7 @@ function PrayerLibrary({ onBack }) {
 // ═══════════════════════════════════════════════════════
 // JOURNAL (WITH N8N SYNC)
 // ═══════════════════════════════════════════════════════
-function JournalView({ onBack, journal, user, signIn }) {
+function JournalView({ onBack, journal, user, signIn, googleReady = true, authError = null }) {
   const { t, locale } = useLocale();
   const [text, setText] = useState("");
   if (!user) {
@@ -886,14 +918,15 @@ function JournalView({ onBack, journal, user, signIn }) {
           <div style={{ fontSize: 40, marginBottom: 16 }}>🔐</div>
           <h3 style={{ fontFamily: S.heading, fontSize: 22, color: S.gold, marginBottom: 10 }}>{t("journal.signInTitle")}</h3>
           <p style={{ fontFamily: S.body, fontSize: 13.5, color: S.textDim, maxWidth: 340, lineHeight: 1.6, marginBottom: 24 }}>{t("journal.signInDesc")}</p>
-          <button onClick={signIn} style={{
+          <button onClick={signIn} disabled={!googleReady} style={{
             background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10,
-            padding: "12px 24px", cursor: "pointer", color: S.text, fontFamily: S.body, fontSize: 14,
+            padding: "12px 24px", cursor: googleReady ? "pointer" : "wait", color: S.text, fontFamily: S.body, fontSize: 14,
             display: "flex", alignItems: "center", gap: 10,
           }}>
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-            {t("common.signInWithGoogle")}
+            {googleReady ? t("common.signInWithGoogle") : t("common.loadingSignIn")}
           </button>
+          {authError === "popupBlocked" && <p style={{ fontFamily: S.body, fontSize: 11, color: S.textDim, marginTop: 12, maxWidth: 320 }}>{t("common.signInPopupBlocked")}</p>}
         </div>
       </div>
     );
@@ -951,7 +984,7 @@ export default function Lumen() {
     return VIEW_VALUES.includes(path) ? path : VIEWS.HOME;
   });
   const [rosarySet, setRosarySet] = useState(null);
-  const { user, loading: authLoading, signIn, signOut } = useAuth();
+  const { user, loading: authLoading, signIn, signOut, googleReady, authError } = useAuth();
   const journal = useJournal(user);
 
   const isFromPopStateRef = useRef(false);
@@ -1025,12 +1058,12 @@ export default function Lumen() {
         {view === VIEWS.ROSARY && <RosarySelect onSelect={s => { setRosarySet(s); setView(VIEWS.ROSARY_PRAY); }} onBack={() => setView(VIEWS.HOME)} />}
         {view === VIEWS.ROSARY_PRAY && <RosaryPray mysterySet={rosarySet} onBack={() => setView(VIEWS.HOME)} />}
         {view === VIEWS.CONFESSION && <ConfessionPrep onBack={() => setView(VIEWS.HOME)} />}
-        {view === VIEWS.EXAMEN && <DailyExamen onBack={() => setView(VIEWS.HOME)} addJournalEntry={user ? journal.addEntry : null} user={user} signIn={signIn} />}
+        {view === VIEWS.EXAMEN && <DailyExamen onBack={() => setView(VIEWS.HOME)} addJournalEntry={user ? journal.addEntry : null} user={user} signIn={signIn} googleReady={googleReady} authError={authError} />}
         {view === VIEWS.PRAYERS && <PrayerLibrary onBack={() => setView(VIEWS.HOME)} />}
-        {view === VIEWS.JOURNAL && <JournalView onBack={() => setView(VIEWS.HOME)} journal={journal} user={user} signIn={signIn} />}
+        {view === VIEWS.JOURNAL && <JournalView onBack={() => setView(VIEWS.HOME)} journal={journal} user={user} signIn={signIn} googleReady={googleReady} authError={authError} />}
         {view === VIEWS.GOSPEL && <DailyGospel onBack={() => setView(VIEWS.HOME)} />}
       </div>
-      <Footer user={user} signIn={signIn} signOut={signOut} />
+      <Footer user={user} signIn={signIn} signOut={signOut} googleReady={googleReady} authError={authError} />
     </div>
   );
 }

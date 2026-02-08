@@ -19,7 +19,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export default function Footer({ user, signIn, signOut }) {
+export default function Footer({ user, signIn, signOut, googleReady = true, authError = null }) {
   const { locale, setLocale, t } = useLocale();
 
   return (
@@ -105,26 +105,32 @@ export default function Footer({ user, signIn, signOut }) {
             </button>
           </>
         ) : (
-          <button
-            type="button"
-            onClick={signIn}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 8,
-              border: `1px solid ${styles.borderDim}`,
-              background: "rgba(255,255,255,0.05)",
-              color: styles.text,
-              fontFamily: styles.body,
-              fontSize: 12,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <GoogleIcon />
-            {t("common.signInWithGoogle")}
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            <button
+              type="button"
+              onClick={signIn}
+              disabled={!googleReady}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 8,
+                border: `1px solid ${styles.borderDim}`,
+                background: "rgba(255,255,255,0.05)",
+                color: googleReady ? styles.text : styles.textDim,
+                fontFamily: styles.body,
+                fontSize: 12,
+                cursor: googleReady ? "pointer" : "wait",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <GoogleIcon />
+              {googleReady ? t("common.signInWithGoogle") : t("common.loadingSignIn")}
+            </button>
+            {authError === "popupBlocked" && (
+              <span style={{ fontSize: 10, color: styles.textDim, maxWidth: 200, textAlign: "right" }}>{t("common.signInPopupBlocked")}</span>
+            )}
+          </div>
         )}
       </div>
     </footer>
