@@ -15,13 +15,23 @@ export const LOCALES = {
 
 export const DEFAULT_LOCALE = LOCALES.EN_US;
 
-/** @returns {string} */
+/** Prefer Spanish if browser language is Spanish; otherwise English. */
+function getBrowserLocale() {
+  if (typeof navigator === "undefined") return DEFAULT_LOCALE;
+  const lang = navigator.language || navigator.userLanguage || "";
+  const list = navigator.languages && navigator.languages.length ? navigator.languages : [lang];
+  const code = (list.find((l) => (l && l.toLowerCase().startsWith("es")) || (l && l.toLowerCase().startsWith("en"))) || lang).toLowerCase();
+  if (code.startsWith("es")) return LOCALES.ES_ES;
+  return LOCALES.EN_US;
+}
+
+/** @returns {string} Stored preference, or browser-detected locale, or default. */
 export function getLocale() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === LOCALES.ES_ES || stored === LOCALES.EN_US) return stored;
   } catch (_) {}
-  return DEFAULT_LOCALE;
+  return getBrowserLocale();
 }
 
 /** Persist locale (call after updating app state). */
