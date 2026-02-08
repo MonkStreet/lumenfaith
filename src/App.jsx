@@ -8,12 +8,14 @@ const GOSPEL_RSS_DIRECT = {
   [LOCALES.EN_US]: "https://bible.usccb.org/readings.rss",
 };
 const GOSPEL_CACHE_PREFIX = "lumen_gospel_";
-// In production, RSS feeds block CORS; use a CORS proxy so the browser can fetch them.
 const CORS_PROXY = "https://corsproxy.io/?";
 function getGospelRssUrl(locale) {
   const direct = GOSPEL_RSS_DIRECT[locale] || GOSPEL_RSS_DIRECT[LOCALES.EN_US];
   if (typeof import.meta !== "undefined" && import.meta.env?.DEV) {
     return locale === LOCALES.ES_ES ? "/api/gospel-es" : "/api/gospel-en";
+  }
+  if (CONFIG.GOSPEL_PROXY_BASE) {
+    return CONFIG.GOSPEL_PROXY_BASE + encodeURIComponent(direct);
   }
   return CORS_PROXY + encodeURIComponent(direct);
 }
@@ -30,6 +32,8 @@ const CONFIG = {
   GOOGLE_CLIENT_ID: "959675340296-t0vdupimbdtr5mvalimr1mdu0cuqu2tq.apps.googleusercontent.com",
   N8N_SAVE_WEBHOOK: "https://n8n.monk.st/webhook/lumen-journal-save",
   N8N_LOAD_WEBHOOK: "https://n8n.monk.st/webhook/lumen-journal-load",
+  /** Your proxy for Gospel RSS (avoids 403/CORS). Set to your deployed /api/gospel?url= so the app uses it in production. */
+  GOSPEL_PROXY_BASE: "https://www.lumenfaith.app/api/gospel?url=",
 };
 
 // ═══════════════════════════════════════════════════════
@@ -528,24 +532,51 @@ function parseGospelRss(xmlText) {
   if (!item) return null;
   const titleEl = item.getElementsByTagName("title")[0];
   const descEl = item.getElementsByTagName("description")[0];
-  const dayTitle = titleEl?.textContent?.trim() || "";
-  const descriptionHtml = descEl?.textContent?.trim() || "";
+  const dayTitle = (titleEl?.textContent || "").trim();
+  const descriptionHtml = (descEl?.textContent || "").trim();
   if (!descriptionHtml) return { dayTitle, readings: [] };
   const htmlDoc = new DOMParser().parseFromString(descriptionHtml, "text/html");
   const readings = [];
-  const h4s = htmlDoc.body.querySelectorAll("h4");
-  h4s.forEach((h4) => {
-    const subtitle = h4.textContent.trim();
-    let text = "";
-    let next = h4.nextElementSibling;
-    if (next && (next.classList.contains("poetry") || next.tagName === "DIV")) {
-      const p = next.querySelector("p");
-      if (p) {
-        text = p.innerHTML.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").trim();
+
+  // ACI Prensa (Spanish): <h3>reference</h3> + <div class="readings__verse-container"> with <span class="readings__text">
+  const verseContainers = htmlDoc.body.querySelectorAll(".readings__verse-container");
+  if (verseContainers.length > 0) {
+    const h3s = htmlDoc.body.querySelectorAll("h3");
+    h3s.forEach((h3) => {
+      const subtitle = h3.textContent.trim();
+      const parent = h3.closest("div");
+      if (!parent) return;
+      const verseDivs = parent.querySelectorAll(".readings__verse-container");
+      const parts = [];
+      verseDivs.forEach((div) => {
+        const textSpan = div.querySelector(".readings__text");
+        if (textSpan) {
+          const t = textSpan.innerHTML.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").trim();
+          if (t) parts.push(t);
+        }
+      });
+      const text = parts.join("\n\n");
+      if (subtitle) readings.push({ subtitle, text });
+    });
+  }
+
+  // USCCB (English) or legacy: <h4> + <div class="poetry"><p>...</p></div>
+  if (readings.length === 0) {
+    const h4s = htmlDoc.body.querySelectorAll("h4");
+    h4s.forEach((h4) => {
+      const subtitle = h4.textContent.trim();
+      let text = "";
+      let next = h4.nextElementSibling;
+      if (next && (next.classList.contains("poetry") || next.tagName === "DIV")) {
+        const p = next.querySelector("p");
+        if (p) {
+          text = p.innerHTML.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").trim();
+        }
       }
-    }
-    if (subtitle) readings.push({ subtitle, text });
-  });
+      if (subtitle) readings.push({ subtitle, text });
+    });
+  }
+
   return { dayTitle, readings };
 }
 

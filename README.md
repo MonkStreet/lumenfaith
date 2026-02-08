@@ -1,3 +1,5 @@
+# Lumen — Catholic Spiritual Companion
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
@@ -10,6 +12,13 @@ Currently, two official plugins are available:
 ## React Compiler
 
 The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Daily Gospel RSS (production)
+
+The **Evangelio del Día** section fetches readings from ACI Prensa (ES) and USCCB (EN). Those feeds block direct browser requests (CORS/403). The app uses a **serverless proxy** so requests go to your own domain.
+
+- Deploy the `api/` folder with Vercel (or similar). The `api/gospel.js` function is a GET proxy: `?url=<encoded-rss-url>`.
+- In production the app already points to `https://www.lumenfaith.app/api/gospel?url=`. After deploy, the Gospel section will load without 403.
 
 ## Expanding the ESLint configuration
 
