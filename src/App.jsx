@@ -402,7 +402,7 @@ function RosaryPray({ mysterySet, onBack }) {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <Header title={`${t(`mysteries.${mysterySet}`)} Mysteries`} subtitle={getSectionLabel()} onBack={onBack} />
+      <Header title={t(`mysteries.${mysterySet}Mysteries`)} subtitle={getSectionLabel()} onBack={onBack} />
       <RosaryProgressBar segmentIndex={segmentIndex} color={d.color} />
 
       {/* Hail Mary bead counter */}
