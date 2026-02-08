@@ -324,8 +324,15 @@ function useJournal(user) {
   useEffect(() => {
     if (!user) { setLoading(false); return; }
     (async () => {
-      // Try n8n first
-      let loaded = false;
+      // Always load from localStorage first
+      let localEntries = [];
+      try {
+        const r = localStorage.getItem(`lumen_journal_${user.id}`);
+        if (r) localEntries = JSON.parse(r);
+      } catch {}
+      setEntries(localEntries);
+
+      // Then try n8n for remote sync (merge if newer)
       if (CONFIG.N8N_LOAD_WEBHOOK !== "https://your-n8n-instance.com/webhook/lumen-journal-load") {
         try {
           const res = await fetch(CONFIG.N8N_LOAD_WEBHOOK, {
@@ -334,15 +341,11 @@ function useJournal(user) {
           });
           if (res.ok) {
             const data = await res.json();
-            if (data.entries) { setEntries(data.entries); loaded = true; }
+            if (data.entries && data.entries.length > localEntries.length) {
+              setEntries(data.entries);
+              try { localStorage.setItem(`lumen_journal_${user.id}`, JSON.stringify(data.entries)); } catch {}
+            }
           }
-        } catch {}
-      }
-      // Fallback to local
-      if (!loaded) {
-        try {
-          const r = localStorage.getItem(`lumen_journal_${user.id}`);
-          if (r) setEntries(JSON.parse(r));
         } catch {}
       }
       setLoading(false);
