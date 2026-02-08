@@ -954,11 +954,18 @@ export default function Lumen() {
   const { user, loading: authLoading, signIn, signOut } = useAuth();
   const journal = useJournal(user);
 
-  // Sync URL with view so analytics (and sharing) see /home, /gospel, /rosary, etc.
+  const isFromPopStateRef = useRef(false);
+
+  // Sync URL with view: pushState on in-app navigation (so back button works), skip when we're handling back/forward
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (isFromPopStateRef.current) {
+      isFromPopStateRef.current = false;
+      return;
+    }
     const path = view === VIEWS.HOME ? "/" : `/${view}`;
-    if (typeof window !== "undefined" && window.location.pathname !== path) {
-      window.history.replaceState({ view }, "", path);
+    if (window.location.pathname !== path) {
+      window.history.pushState({ view }, "", path);
     }
   }, [view]);
 
@@ -966,7 +973,10 @@ export default function Lumen() {
     if (typeof window === "undefined") return;
     const onPopState = () => {
       const path = window.location.pathname.replace(/^\//, "") || VIEWS.HOME;
-      if (VIEW_VALUES.includes(path)) setView(path);
+      if (VIEW_VALUES.includes(path)) {
+        isFromPopStateRef.current = true;
+        setView(path);
+      }
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
