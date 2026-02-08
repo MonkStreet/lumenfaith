@@ -943,11 +943,34 @@ function JournalView({ onBack, journal, user, signIn }) {
 // ═══════════════════════════════════════════════════════
 // MAIN APP
 // ═══════════════════════════════════════════════════════
+const VIEW_VALUES = Object.values(VIEWS);
+
 export default function Lumen() {
-  const [view, setView] = useState(VIEWS.HOME);
+  const [view, setView] = useState(() => {
+    const path = (typeof window !== "undefined" && window.location.pathname.replace(/^\//, "")) || "";
+    return VIEW_VALUES.includes(path) ? path : VIEWS.HOME;
+  });
   const [rosarySet, setRosarySet] = useState(null);
   const { user, loading: authLoading, signIn, signOut } = useAuth();
   const journal = useJournal(user);
+
+  // Sync URL with view so analytics (and sharing) see /home, /gospel, /rosary, etc.
+  useEffect(() => {
+    const path = view === VIEWS.HOME ? "/" : `/${view}`;
+    if (typeof window !== "undefined" && window.location.pathname !== path) {
+      window.history.replaceState({ view }, "", path);
+    }
+  }, [view]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onPopState = () => {
+      const path = window.location.pathname.replace(/^\//, "") || VIEWS.HOME;
+      if (VIEW_VALUES.includes(path)) setView(path);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   // Set dark theme for iPhone safe areas & prevent zoom
   useEffect(() => {
