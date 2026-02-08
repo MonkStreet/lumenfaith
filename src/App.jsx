@@ -525,6 +525,13 @@ function ConfessionPrep({ onBack }) {
 // ═══════════════════════════════════════════════════════
 // DAILY GOSPEL (RSS: ACI Prensa / USCCB)
 // ═══════════════════════════════════════════════════════
+function decodeHtmlEntities(str) {
+  if (!str) return str;
+  const el = document.createElement("span");
+  el.innerHTML = str;
+  return el.textContent || str;
+}
+
 function parseGospelRss(xmlText) {
   const doc = new DOMParser().parseFromString(xmlText, "text/xml");
   const items = doc.getElementsByTagName("item");
@@ -532,7 +539,7 @@ function parseGospelRss(xmlText) {
   if (!item) return null;
   const titleEl = item.getElementsByTagName("title")[0];
   const descEl = item.getElementsByTagName("description")[0];
-  const dayTitle = (titleEl?.textContent || "").trim();
+  const dayTitle = decodeHtmlEntities((titleEl?.textContent || "").trim());
   const descriptionHtml = (descEl?.textContent || "").trim();
   if (!descriptionHtml) return { dayTitle, readings: [] };
   const htmlDoc = new DOMParser().parseFromString(descriptionHtml, "text/html");
@@ -543,7 +550,7 @@ function parseGospelRss(xmlText) {
   if (verseContainers.length > 0) {
     const h3s = htmlDoc.body.querySelectorAll("h3");
     h3s.forEach((h3) => {
-      const subtitle = h3.textContent.trim();
+      const subtitle = decodeHtmlEntities(h3.textContent.trim());
       const parent = h3.closest("div");
       if (!parent) return;
       const verseDivs = parent.querySelectorAll(".readings__verse-container");
@@ -551,7 +558,8 @@ function parseGospelRss(xmlText) {
       verseDivs.forEach((div) => {
         const textSpan = div.querySelector(".readings__text");
         if (textSpan) {
-          const t = textSpan.innerHTML.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").trim();
+          const raw = textSpan.innerHTML.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").trim();
+          const t = decodeHtmlEntities(raw);
           if (t) parts.push(t);
         }
       });
@@ -564,13 +572,14 @@ function parseGospelRss(xmlText) {
   if (readings.length === 0) {
     const h4s = htmlDoc.body.querySelectorAll("h4");
     h4s.forEach((h4) => {
-      const subtitle = h4.textContent.trim();
+      const subtitle = decodeHtmlEntities(h4.textContent.trim());
       let text = "";
       let next = h4.nextElementSibling;
       if (next && (next.classList.contains("poetry") || next.tagName === "DIV")) {
         const p = next.querySelector("p");
         if (p) {
-          text = p.innerHTML.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").trim();
+          const raw = p.innerHTML.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").trim();
+          text = decodeHtmlEntities(raw);
         }
       }
       if (subtitle) readings.push({ subtitle, text });
