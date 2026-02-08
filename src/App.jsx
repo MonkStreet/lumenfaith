@@ -81,6 +81,25 @@ function ProgressBar({ total, current, color = S.gold }) {
   return <div style={{ display: "flex", padding: "10px 20px", gap: 4, flexShrink: 0 }}>{Array.from({ length: total }, (_, i) => <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i < current ? color : i === current ? `${color}66` : "rgba(191,155,48,0.1)", transition: "all 0.4s" }}/>)}</div>;
 }
 
+/** Rosary: intro (short) + 5 mysteries (long) + closing (short). Pale = current, full color = done, dim = not yet. */
+function RosaryProgressBar({ segmentIndex, color = S.gold }) {
+  const segments = [
+    { flex: 0.45, label: "intro" },
+    { flex: 1, label: "1" }, { flex: 1, label: "2" }, { flex: 1, label: "3" }, { flex: 1, label: "4" }, { flex: 1, label: "5" },
+    { flex: 0.45, label: "end" },
+  ];
+  return (
+    <div style={{ display: "flex", padding: "10px 20px", gap: 4, flexShrink: 0, alignItems: "center" }}>
+      {segments.map((s, i) => {
+        const isDone = i < segmentIndex;
+        const isCurrent = i === segmentIndex;
+        const bg = isDone ? color : isCurrent ? `${color}99` : "rgba(191,155,48,0.1)";
+        return <div key={i} style={{ flex: s.flex, height: 4, borderRadius: 2, background: bg, transition: "all 0.4s" }} />;
+      })}
+    </div>
+  );
+}
+
 function Btn({ children, onClick, disabled, full, color }) {
   const bg = color || S.gold;
   return <button onClick={onClick} disabled={disabled} style={{ width: full ? "100%" : "auto", padding: "14px 28px", borderRadius: 13, border: "none", background: disabled ? "rgba(191,155,48,0.12)" : `linear-gradient(135deg, ${bg}, ${bg}cc)`, color: disabled ? "rgba(191,155,48,0.3)" : "#fff", fontFamily: S.heading, fontSize: 16, fontWeight: 600, cursor: disabled ? "default" : "pointer", letterSpacing: "0.04em", boxShadow: disabled ? "none" : `0 4px 16px ${bg}33` }}>{children}</button>;
@@ -373,7 +392,7 @@ function RosaryPray({ mysterySet, onBack }) {
 
   const step = steps[si];
   const currentDecade = step.decadeNum || 0;
-  const decadeProgress = steps.slice(0, si + 1).filter(s => s.type === "mystery").length;
+  const segmentIndex = step.section === "opening" ? 0 : step.section === "closing" ? 6 : Math.min(5, Math.max(1, currentDecade));
 
   const getSectionLabel = () => {
     if (step.section === "opening") return t("rosary.openingPrayers");
@@ -384,7 +403,7 @@ function RosaryPray({ mysterySet, onBack }) {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Header title={`${t(`mysteries.${mysterySet}`)} Mysteries`} subtitle={getSectionLabel()} onBack={onBack} />
-      <ProgressBar total={5} current={decadeProgress} color={d.color} />
+      <RosaryProgressBar segmentIndex={segmentIndex} color={d.color} />
 
       {/* Hail Mary bead counter */}
       {step.type === "hail_mary" && (
