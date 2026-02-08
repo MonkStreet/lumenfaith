@@ -697,51 +697,51 @@ function ConfessionPrep({ onBack }) {
 function DailyExamen({ onBack, addJournalEntry }) {
   const [si, setSi] = useState(0);
   const [notes, setNotes] = useState({});
-  const saved = useRef(false);
-  const [saving, setSaving] = useState(false);
+  const [phase, setPhase] = useState("praying"); // praying | saving | done
 
-  useEffect(() => {
-    if (si >= EXAMEN_STEPS.length && !saved.current) {
-      saved.current = true;
-      setSaving(true);
-      const noteValues = Object.values(notes).filter(Boolean);
-      if (noteValues.length > 0) {
-        // Build labeled notes with step titles
-        const labeledNotes = {};
-        EXAMEN_STEPS.forEach((step, i) => {
-          if (notes[i]) labeledNotes[step.title] = notes[i];
-        });
-        const entry = { notes: labeledNotes, type: "examen" };
-        if (addJournalEntry) {
-          addJournalEntry(entry);
-        } else {
-          try {
-            const r = localStorage.getItem("lumen_journal_guest");
-            let entries = r ? JSON.parse(r) : [];
-            entries.push({ ...entry, date: new Date().toISOString() });
-            localStorage.setItem("lumen_journal_guest", JSON.stringify(entries));
-          } catch {}
-        }
+  const handleComplete = () => {
+    setPhase("saving");
+    const noteValues = Object.values(notes).filter(Boolean);
+    if (noteValues.length > 0) {
+      const labeledNotes = {};
+      EXAMEN_STEPS.forEach((step, i) => {
+        if (notes[i]) labeledNotes[step.title] = notes[i];
+      });
+      const entry = { notes: labeledNotes, type: "examen" };
+      if (addJournalEntry) {
+        addJournalEntry(entry);
+      } else {
+        try {
+          const r = localStorage.getItem("lumen_journal_guest");
+          let entries = r ? JSON.parse(r) : [];
+          entries.push({ ...entry, date: new Date().toISOString() });
+          localStorage.setItem("lumen_journal_guest", JSON.stringify(entries));
+        } catch {}
       }
-      setTimeout(() => setSaving(false), 1200);
     }
-  }, [si]);
+    setTimeout(() => setPhase("done"), 1200);
+  };
 
-  if (si >= EXAMEN_STEPS.length) {
+  if (phase === "saving") {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <Header title="Daily Examen" subtitle="Saving..." onBack={onBack} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
+          <div style={{ width: 32, height: 32, border: "3px solid rgba(191,155,48,0.2)", borderTop: `3px solid ${S.gold}`, borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 18 }} />
+          <p style={{ fontFamily: S.body, fontSize: 15, color: S.gold }}>Saving your reflections...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === "done") {
     return (
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         <Header title="Examen Complete" onBack={onBack} />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 18, animation: "float 3s ease-in-out infinite" }}>🕯️</div>
           <h2 style={{ fontFamily: S.heading, fontSize: 26, color: S.gold, marginBottom: 8 }}>Well Done</h2>
-          {saving ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
-              <div style={{ width: 16, height: 16, border: "2px solid rgba(191,155,48,0.3)", borderTop: `2px solid ${S.gold}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-              <p style={{ fontFamily: S.body, fontSize: 13.5, color: S.gold }}>Saving reflections...</p>
-            </div>
-          ) : (
-            <p style={{ fontFamily: S.body, fontSize: 13.5, color: "rgba(245,236,215,0.55)", maxWidth: 360, lineHeight: 1.7, marginBottom: 24 }}>Your reflections have been saved to your journal. ✓</p>
-          )}
+          <p style={{ fontFamily: S.body, fontSize: 13.5, color: "rgba(245,236,215,0.55)", maxWidth: 360, lineHeight: 1.7, marginBottom: 24 }}>Your reflections have been saved to your journal. ✓</p>
           <Btn onClick={onBack} color={S.gold}>Return Home</Btn>
         </div>
       </div>
@@ -749,7 +749,7 @@ function DailyExamen({ onBack, addJournalEntry }) {
   }
 
   const s = EXAMEN_STEPS[si];
-  const showTextarea = si > 0; // No textarea on step 1 (silence/presence)
+  const showTextarea = si > 0;
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Header title="Daily Examen" subtitle={`Step ${si+1}/5 — ${s.title}`} onBack={onBack} />
@@ -768,7 +768,7 @@ function DailyExamen({ onBack, addJournalEntry }) {
       </div>
       <div style={{ padding: "12px 20px 20px", display: "flex", gap: 10, flexShrink: 0 }}>
         <OutBtn onClick={() => setSi(Math.max(0, si-1))} disabled={si === 0}>←</OutBtn>
-        <div style={{ flex: 1.5 }}><Btn full onClick={() => setSi(si+1)} color={S.gold}>{si < 4 ? "Continue →" : "Complete ✦"}</Btn></div>
+        <div style={{ flex: 1.5 }}><Btn full onClick={() => si < 4 ? setSi(si + 1) : handleComplete()} color={S.gold}>{si < 4 ? "Continue →" : "Complete ✦"}</Btn></div>
       </div>
     </div>
   );
