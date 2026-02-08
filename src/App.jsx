@@ -199,40 +199,34 @@ const GoogleIcon = ({ size = 14 }) => (
   </svg>
 );
 
-/** Old button design; real client ID: click triggers Google prompt() (same callback, no auto One Tap). */
+/** Google official button (renderButton). Demo fallback when no real client ID. */
 function GoogleSignInButton({ googleReady, hasRealClientId, signIn, authError, compact }) {
   const { t } = useLocale();
+  const containerRef = useRef(null);
 
-  const handleClick = () => {
-    if (!hasRealClientId) {
-      signIn();
-      return;
-    }
-    if (!googleReady || !window.google?.accounts?.id) return;
+  useEffect(() => {
+    if (!hasRealClientId || !googleReady || !window.google?.accounts?.id || !containerRef.current) return;
+    containerRef.current.innerHTML = "";
     try {
-      window.google.accounts.id.prompt();
+      window.google.accounts.id.renderButton(containerRef.current, {
+        type: "standard",
+        theme: "filled_black",
+        size: compact ? "medium" : "large",
+        text: "signin_with",
+        shape: "rectangular",
+      });
     } catch (e) {
-      console.error("Google prompt error:", e);
+      console.error("renderButton error:", e);
     }
-  };
-
-  const buttonStyle = {
-    padding: compact ? "6px 12px" : "12px 24px",
-    borderRadius: compact ? 8 : 10,
-    border: `1px solid ${S.borderDim}`,
-    background: "rgba(255,255,255,0.05)",
-    color: S.text,
-    fontFamily: S.body,
-    fontSize: compact ? 12 : 14,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: compact ? 6 : 10,
-  };
+  }, [googleReady, hasRealClientId]);
 
   if (!hasRealClientId) {
     return (
-      <button type="button" onClick={signIn} style={{ ...buttonStyle, cursor: "pointer" }}>
+      <button type="button" onClick={signIn} style={{
+        padding: compact ? "6px 12px" : "12px 24px", borderRadius: compact ? 8 : 10, border: `1px solid ${S.borderDim}`,
+        background: "rgba(255,255,255,0.05)", cursor: "pointer", color: S.text, fontFamily: S.body, fontSize: compact ? 12 : 14,
+        display: "flex", alignItems: "center", justifyContent: "center", gap: compact ? 6 : 10,
+      }}>
         <GoogleIcon size={compact ? 14 : 18} />
         {t("common.signInWithGoogle")}
       </button>
@@ -241,25 +235,27 @@ function GoogleSignInButton({ googleReady, hasRealClientId, signIn, authError, c
 
   if (!googleReady) {
     return (
-      <div style={{ ...buttonStyle, color: S.textDim, cursor: "wait" }}>
-        <GoogleIcon size={compact ? 14 : 18} />
+      <div style={{
+        padding: compact ? "6px 12px" : "12px 24px", borderRadius: compact ? 8 : 10, border: `1px solid ${S.borderDim}`,
+        background: "rgba(255,255,255,0.05)", color: S.textDim, fontFamily: S.body, fontSize: compact ? 12 : 14,
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+      }}>
         {t("common.loadingSignIn")}
       </div>
     );
   }
 
   return (
-    <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-      <button
-        type="button"
-        onClick={handleClick}
-        style={{ ...buttonStyle, cursor: "pointer" }}
-      >
-        <GoogleIcon size={compact ? 14 : 18} />
-        {t("common.signInWithGoogle")}
-      </button>
+    <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+      <div
+        ref={containerRef}
+        style={{
+          borderRadius: compact ? 8 : 10,
+          overflow: "hidden",
+        }}
+      />
       {authError === "popupBlocked" && (
-        <span style={{ fontSize: 10, color: S.textDim, maxWidth: 200, textAlign: "right" }}>{t("common.signInPopupBlocked")}</span>
+        <span style={{ fontSize: 10, color: S.textDim }}>{t("common.signInPopupBlocked")}</span>
       )}
     </div>
   );
