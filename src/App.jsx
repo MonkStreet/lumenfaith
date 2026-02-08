@@ -820,17 +820,18 @@ function PrayerLibrary({ onBack }) {
       text: p.text !== undefined ? p.text : (p.textKey ? prayersContent[p.textKey] : ""),
     })),
   })), [prayerLibrary, prayersContent, t]);
-  const [sel, setSel] = useState(null);
+  const [sel, setSel] = useState(null); // { ci, pi } so content updates when locale changes
   const [exp, setExp] = useState(0);
+  const selectedPrayer = sel != null && categories[sel.ci]?.prayers[sel.pi] ? categories[sel.ci].prayers[sel.pi] : null;
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Header title={t("prayers.title")} onBack={onBack} />
       <div style={{ flex: 1, padding: 20, maxWidth: 540, margin: "0 auto", width: "100%", overflow: "auto" }}>
-        {sel ? (
+        {selectedPrayer ? (
           <div style={{ animation: "fadeUp 0.3s ease-out" }}>
             <button onClick={() => setSel(null)} style={{ background: "none", border: "none", color: S.gold, fontFamily: S.body, fontSize: 13, cursor: "pointer", marginBottom: 16 }}>{t("common.allPrayers")}</button>
-            <h3 style={{ fontFamily: S.heading, fontSize: 24, color: S.gold, marginBottom: 16 }}>{sel.title}</h3>
-            <p style={{ fontFamily: S.body, fontSize: 15, color: "rgba(245,236,215,0.83)", lineHeight: 1.85, whiteSpace: "pre-line" }}>{sel.text}</p>
+            <h3 style={{ fontFamily: S.heading, fontSize: 24, color: S.gold, marginBottom: 16 }}>{selectedPrayer.title}</h3>
+            <p style={{ fontFamily: S.body, fontSize: 15, color: "rgba(245,236,215,0.83)", lineHeight: 1.85, whiteSpace: "pre-line" }}>{selectedPrayer.text}</p>
           </div>
         ) : categories.map((cat, ci) => (
           <div key={ci} style={{ marginBottom: 13 }}>
@@ -843,7 +844,7 @@ function PrayerLibrary({ onBack }) {
               <span style={{ color: "rgba(191,155,48,0.35)", fontSize: 15, transform: exp === ci ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>▾</span>
             </button>
             {exp === ci && <div style={{ border: `1px solid ${S.borderDim}`, borderTop: "none", borderRadius: "0 0 10px 10px" }}>
-              {cat.prayers.map((p, pi) => <button key={pi} onClick={() => setSel(p)} style={{ width: "100%", textAlign: "left", padding: "12px 16px", background: "transparent", border: "none", borderBottom: pi < cat.prayers.length - 1 ? "1px solid rgba(191,155,48,0.06)" : "none", cursor: "pointer", fontFamily: S.body, fontSize: 14, color: "rgba(245,236,215,0.68)" }}>{p.title}</button>)}
+              {cat.prayers.map((p, pi) => <button key={pi} onClick={() => setSel({ ci, pi })} style={{ width: "100%", textAlign: "left", padding: "12px 16px", background: "transparent", border: "none", borderBottom: pi < cat.prayers.length - 1 ? "1px solid rgba(191,155,48,0.06)" : "none", cursor: "pointer", fontFamily: S.body, fontSize: 14, color: "rgba(245,236,215,0.68)" }}>{p.title}</button>)}
             </div>}
           </div>
         ))}
