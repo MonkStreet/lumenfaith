@@ -424,7 +424,7 @@ function RosaryPray({ mysterySet, onBack }) {
         {step.type === "mystery" ? (
           <>
             <div style={{ fontFamily: S.body, fontSize: 12, color: d.color, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 8 }}>
-              {ordinals[step.decadeNum - 1]} Mystery — {t("rosary.fruit")} {step.fruit}
+              {ordinals[step.decadeNum - 1]} {t("rosary.mysteryWord")} — {t("rosary.fruit")} {step.fruit}
             </div>
             <h3 style={{ fontFamily: S.heading, fontSize: 28, fontWeight: 500, color: d.color, marginBottom: 16 }}>{step.title}</h3>
             <p style={{ fontFamily: S.body, fontSize: 13.5, color: S.textDim, fontStyle: "italic", marginBottom: 14, maxWidth: 460, lineHeight: 1.6 }}>{step.scripture}</p>

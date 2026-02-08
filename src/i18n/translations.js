@@ -109,6 +109,7 @@ const enUS = {
     forIntentionsOfHolyFather: "For the intentions of the Holy Father",
     meditatingOn: "Meditating on:",
     fruit: "Fruit:",
+    mysteryWord: "Mystery",
     mysteryOrdinals: ["1st", "2nd", "3rd", "4th", "5th"],
     hailMaryDecade: "Hail Mary {n}/10",
   },
@@ -369,7 +370,7 @@ function getEsContent() {
     prayers: {
       signOfCross: "En el nombre del Padre, y del Hijo, y del Espíritu Santo. Amén.",
       creed: "Creo en Dios, Padre todopoderoso,\nCreador del cielo y de la tierra.\nCreo en Jesucristo, su único Hijo, nuestro Señor,\nque fue concebido por obra y gracia del Espíritu Santo,\nnació de Santa María Virgen,\npadeció bajo el poder de Poncio Pilato,\nfue crucificado, muerto y sepultado.\nDescendió a los infiernos.\nAl tercer día resucitó de entre los muertos.\nSubió a los cielos\ny está sentado a la derecha de Dios Padre todopoderoso.\nDesde allí ha de venir a juzgar a vivos y muertos.\nCreo en el Espíritu Santo,\nla santa Iglesia católica,\nla comunión de los santos,\nel perdón de los pecados,\nla resurrección de la carne\ny la vida eterna. Amén.",
-      ourFather: "Padre nuestro que estás en el cielo,\nsantificado sea tu nombre.\nVenga tu reino.\nHágase tu voluntad así en la tierra como en el cielo.\nDanos hoy nuestro pan de cada día.\nPerdona nuestras ofensas,\ncomo también nosotros perdonamos a los que nos ofenden.\nNo nos dejes caer en la tentación,\ny líbranos del mal.\nAmén.",
+      ourFather: "Padre nuestro que estás en el cielo,\nsantificado sea tu nombre.\nVenga a nosotros tu Reino.\nHágase tu voluntad así en la tierra como en el cielo.\nDanos hoy nuestro pan de cada día.\nPerdona nuestras ofensas,\ncomo también nosotros perdonamos a los que nos ofenden.\nNo nos dejes caer en la tentación,\ny líbranos del mal.\nAmén.",
       hailMary: "Dios te salve, María,\nllena eres de gracia,\nel Señor es contigo.\nBendita tú eres entre todas las mujeres,\ny bendito es el fruto de tu vientre, Jesús.\nSanta María, Madre de Dios,\nruega por nosotros pecadores,\nahora y en la hora de nuestra muerte.\nAmén.",
       gloryBe: "Gloria al Padre, y al Hijo, y al Espíritu Santo.\nComo era en el principio, ahora y siempre,\npor los siglos de los siglos.\nAmén.",
       fatima: "¡Oh Jesús mío!\nPerdona nuestros pecados,\nlíbranos del fuego del infierno,\nlleva al cielo a todas las almas,\ny socorre especialmente a las más necesitadas de tu misericordia.\nAmén.",
@@ -597,7 +598,8 @@ const esES = {
     forIntentionsOfHolyFather: "Por las intenciones del Santo Padre",
     meditatingOn: "Meditando:",
     fruit: "Fruto:",
-    mysteryOrdinals: ["1.ª", "2.ª", "3.ª", "4.ª", "5.ª"],
+    mysteryWord: "Misterio",
+    mysteryOrdinals: ["1.º", "2.º", "3.º", "4.º", "5.º"],
     hailMaryDecade: "Ave María {n}/10",
   },
   confession: {
