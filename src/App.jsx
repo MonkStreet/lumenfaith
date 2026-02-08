@@ -874,7 +874,7 @@ function DailyExamen({ onBack, addJournalEntry, user, signIn, googleReady = true
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 18, animation: "float 3s ease-in-out infinite" }}>🕯️</div>
           <h2 style={{ fontFamily: S.heading, fontSize: 26, color: S.gold, marginBottom: 8 }}>{t("examen.wellDone")}</h2>
-          <p style={{ fontFamily: S.body, fontSize: 13.5, color: "rgba(245,236,215,0.55)", maxWidth: 360, lineHeight: 1.7, marginBottom: 24 }}>{didSave ? t("examen.reflectionsSaved") : t("examen.completeNoSave")}</p>
+          <p style={{ fontFamily: S.body, fontSize: 13.5, color: "rgba(245,236,215,0.55)", maxWidth: 360, lineHeight: 1.7, marginBottom: 24 }}>{didSave ? t("examen.reflectionsSaved") : (user ? t("examen.completeInviteWrite") : t("examen.completeNoSave"))}</p>
           <Btn onClick={onBack} color={S.gold}>{t("common.returnHome")}</Btn>
         </div>
       </div>
