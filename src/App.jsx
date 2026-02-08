@@ -264,14 +264,11 @@ function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for cached user in storage
-    (async () => {
-      try {
-        const cached = await window.storage.get("lumen_user");
-        if (cached) setUser(JSON.parse(cached.value));
-      } catch {}
-      setLoading(false);
-    })();
+    try {
+      const cached = localStorage.getItem("lumen_user");
+      if (cached) setUser(JSON.parse(cached));
+    } catch {}
+    setLoading(false);
 
     // Load Google Identity Services
     const script = document.createElement("script");
@@ -295,7 +292,7 @@ function useAuth() {
       const payload = JSON.parse(atob(response.credential.split(".")[1]));
       const userData = { id: payload.sub, name: payload.name, email: payload.email, picture: payload.picture };
       setUser(userData);
-      try { await window.storage.set("lumen_user", JSON.stringify(userData)); } catch {}
+      try { localStorage.setItem("lumen_user", JSON.stringify(userData)); } catch {}
     } catch (e) { console.error("Auth error:", e); }
   };
 
@@ -306,13 +303,13 @@ function useAuth() {
       // Demo mode — create a local user
       const demo = { id: "local_user", name: "Pilgrim", email: "local", picture: null };
       setUser(demo);
-      (async () => { try { await window.storage.set("lumen_user", JSON.stringify(demo)); } catch {} })();
+      try { localStorage.setItem("lumen_user", JSON.stringify(demo)); } catch {};
     }
   };
 
-  const signOut = async () => {
+  const signOut = () => {
     setUser(null);
-    try { await window.storage.delete("lumen_user"); } catch {}
+    try { localStorage.removeItem("lumen_user"); } catch {}
   };
 
   return { user, loading, signIn, signOut };
@@ -344,8 +341,8 @@ function useJournal(user) {
       // Fallback to local
       if (!loaded) {
         try {
-          const r = await window.storage.get(`lumen_journal_${user.id}`);
-          if (r) setEntries(JSON.parse(r.value));
+          const r = localStorage.getItem(`lumen_journal_${user.id}`);
+          if (r) setEntries(JSON.parse(r));
         } catch {}
       }
       setLoading(false);
@@ -367,13 +364,13 @@ function useJournal(user) {
   const addEntry = async (entry) => {
     const updated = [...entries, { ...entry, date: new Date().toISOString() }];
     setEntries(updated);
-    try { await window.storage.set(`lumen_journal_${user.id}`, JSON.stringify(updated)); } catch {}
+    try { localStorage.setItem(`lumen_journal_${user.id}`, JSON.stringify(updated)); } catch {}
     syncToN8n(updated);
   };
 
   const clearEntries = async () => {
     setEntries([]);
-    try { await window.storage.delete(`lumen_journal_${user.id}`); } catch {}
+    try { localStorage.removeItem(`lumen_journal_${user.id}`); } catch {}
     syncToN8n([]);
   };
 
