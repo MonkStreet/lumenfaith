@@ -527,12 +527,7 @@ function RosaryPray({ mysterySet, onBack }) {
 
   const [si, setSi] = useState(0);
   const steps = fullSteps.current;
-  const step = steps[si];
   const totalSteps = steps.length;
-  const currentDecade = step.decadeNum || 0;
-
-  // Calculate which decade we're on for the progress bar
-  const decadeProgress = steps.slice(0, si + 1).filter(s => s.type === "mystery").length;
 
   if (si >= totalSteps) {
     return (
@@ -549,6 +544,10 @@ function RosaryPray({ mysterySet, onBack }) {
       </div>
     );
   }
+
+  const step = steps[si];
+  const currentDecade = step.decadeNum || 0;
+  const decadeProgress = steps.slice(0, si + 1).filter(s => s.type === "mystery").length;
 
   const getSectionLabel = () => {
     if (step.section === "opening") return "Opening Prayers";
@@ -589,11 +588,11 @@ function RosaryPray({ mysterySet, onBack }) {
         ) : step.type === "litany" ? (
           <div style={{ maxWidth: 480, width: "100%", textAlign: "left" }}>
             <h3 style={{ fontFamily: S.heading, fontSize: 24, color: S.gold, marginBottom: 18, textAlign: "center" }}>Litany of Loreto</h3>
-            <div style={{ maxHeight: 350, overflowY: "auto", paddingRight: 8 }}>
+            <div style={{ maxHeight: 350, overflowY: "auto", paddingRight: 4 }}>
               {LITANY_OF_LORETO.map((line, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, fontSize: 13.5, fontFamily: S.body, lineHeight: 1.5 }}>
-                  <span style={{ color: "rgba(245,236,215,0.75)", flex: 1 }}>V. {line.v}</span>
-                  <span style={{ color: S.gold, fontStyle: "italic", flex: 0.6, textAlign: "right" }}>R. {line.r}</span>
+                <div key={i} style={{ marginBottom: 8, fontSize: 13, fontFamily: S.body, lineHeight: 1.5 }}>
+                  <p style={{ color: "rgba(245,236,215,0.75)" }}>{line.v}</p>
+                  <p style={{ color: S.gold, fontStyle: "italic", paddingLeft: 16 }}>{line.r}</p>
                 </div>
               ))}
             </div>
@@ -698,17 +697,51 @@ function ConfessionPrep({ onBack }) {
 function DailyExamen({ onBack, addJournalEntry }) {
   const [si, setSi] = useState(0);
   const [notes, setNotes] = useState({});
+  const saved = useRef(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (si >= EXAMEN_STEPS.length && !saved.current) {
+      saved.current = true;
+      setSaving(true);
+      const noteValues = Object.values(notes).filter(Boolean);
+      if (noteValues.length > 0) {
+        // Build labeled notes with step titles
+        const labeledNotes = {};
+        EXAMEN_STEPS.forEach((step, i) => {
+          if (notes[i]) labeledNotes[step.title] = notes[i];
+        });
+        const entry = { notes: labeledNotes, type: "examen" };
+        if (addJournalEntry) {
+          addJournalEntry(entry);
+        } else {
+          try {
+            const r = localStorage.getItem("lumen_journal_guest");
+            let entries = r ? JSON.parse(r) : [];
+            entries.push({ ...entry, date: new Date().toISOString() });
+            localStorage.setItem("lumen_journal_guest", JSON.stringify(entries));
+          } catch {}
+        }
+      }
+      setTimeout(() => setSaving(false), 1200);
+    }
+  }, [si]);
 
   if (si >= EXAMEN_STEPS.length) {
-    const noteValues = Object.values(notes).filter(Boolean);
-    if (noteValues.length > 0 && addJournalEntry) addJournalEntry({ notes, type: "examen" });
     return (
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
         <Header title="Examen Complete" onBack={onBack} />
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 18, animation: "float 3s ease-in-out infinite" }}>🕯️</div>
           <h2 style={{ fontFamily: S.heading, fontSize: 26, color: S.gold, marginBottom: 8 }}>Well Done</h2>
-          <p style={{ fontFamily: S.body, fontSize: 13.5, color: "rgba(245,236,215,0.55)", maxWidth: 360, lineHeight: 1.7, marginBottom: 24 }}>Your reflections have been saved to your journal.</p>
+          {saving ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+              <div style={{ width: 16, height: 16, border: "2px solid rgba(191,155,48,0.3)", borderTop: `2px solid ${S.gold}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+              <p style={{ fontFamily: S.body, fontSize: 13.5, color: S.gold }}>Saving reflections...</p>
+            </div>
+          ) : (
+            <p style={{ fontFamily: S.body, fontSize: 13.5, color: "rgba(245,236,215,0.55)", maxWidth: 360, lineHeight: 1.7, marginBottom: 24 }}>Your reflections have been saved to your journal. ✓</p>
+          )}
           <Btn onClick={onBack} color={S.gold}>Return Home</Btn>
         </div>
       </div>
@@ -716,6 +749,7 @@ function DailyExamen({ onBack, addJournalEntry }) {
   }
 
   const s = EXAMEN_STEPS[si];
+  const showTextarea = si > 0; // No textarea on step 1 (silence/presence)
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Header title="Daily Examen" subtitle={`Step ${si+1}/5 — ${s.title}`} onBack={onBack} />
@@ -728,8 +762,8 @@ function DailyExamen({ onBack, addJournalEntry }) {
           <p style={{ fontFamily: S.body, fontSize: 14, color: "rgba(245,236,215,0.78)", lineHeight: 1.7, marginBottom: 12 }}>{s.instruction}</p>
           <p style={{ fontFamily: S.heading, fontSize: 14, fontStyle: "italic", color: "rgba(191,155,48,0.55)", marginBottom: 18, lineHeight: 1.5 }}>{s.prompt}</p>
           {s.questions.map((q, i) => <div key={i} style={{ padding: "9px 0", borderBottom: "1px solid rgba(191,155,48,0.06)" }}><p style={{ fontFamily: S.body, fontSize: 13.5, color: "rgba(245,236,215,0.55)", lineHeight: 1.5 }}>{q}</p></div>)}
-          <textarea placeholder="Your reflections..." value={notes[si] || ""} onChange={e => setNotes({ ...notes, [si]: e.target.value })}
-            style={{ width: "100%", marginTop: 16, padding: "12px 14px", background: "rgba(255,248,235,0.04)", border: `1px solid ${S.borderDim}`, borderRadius: 10, color: S.text, fontFamily: S.body, fontSize: 13, lineHeight: 1.6, minHeight: 80, resize: "vertical" }} />
+          {showTextarea && <textarea placeholder="Your reflections..." value={notes[si] || ""} onChange={e => setNotes({ ...notes, [si]: e.target.value })}
+            style={{ width: "100%", marginTop: 16, padding: "12px 14px", background: "rgba(255,248,235,0.04)", border: `1px solid ${S.borderDim}`, borderRadius: 10, color: S.text, fontFamily: S.body, fontSize: 16, lineHeight: 1.6, minHeight: 80, resize: "vertical" }} />}
         </div>
       </div>
       <div style={{ padding: "12px 20px 20px", display: "flex", gap: 10, flexShrink: 0 }}>
@@ -824,10 +858,15 @@ function JournalView({ onBack, journal, user, signIn }) {
           {[...entries].reverse().map((e, i) => (
             <div key={i} style={{ padding: "13px 15px", marginBottom: 9, background: S.cardBg, border: `1px solid ${S.borderDim}`, borderRadius: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontFamily: S.body, fontSize: 10.5, color: "rgba(191,155,48,0.4)" }}>{new Date(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
-                <span style={{ fontFamily: S.body, fontSize: 10.5, color: "rgba(191,155,48,0.3)", textTransform: "capitalize" }}>{e.type}</span>
+                <span style={{ fontFamily: S.body, fontSize: 10.5, color: "rgba(191,155,48,0.4)" }}>{new Date(e.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</span>
+                <span style={{ fontFamily: S.body, fontSize: 10.5, color: e.type === "examen" ? "rgba(191,155,48,0.5)" : "rgba(245,236,215,0.3)", textTransform: "capitalize", fontWeight: e.type === "examen" ? 600 : 400 }}>{e.type === "examen" ? "🕯️ Examen" : "✍️ Reflection"}</span>
               </div>
-              {Object.values(e.notes || {}).filter(Boolean).map((n, ni) => <p key={ni} style={{ fontFamily: S.body, fontSize: 13, color: "rgba(245,236,215,0.68)", lineHeight: 1.55, marginTop: ni > 0 ? 5 : 0 }}>{n}</p>)}
+              {Object.entries(e.notes || {}).filter(([_, v]) => v).map(([key, val], ni) => (
+                <div key={ni} style={{ marginTop: ni > 0 ? 8 : 0 }}>
+                  {isNaN(key) && <p style={{ fontFamily: S.heading, fontSize: 12, color: "rgba(191,155,48,0.45)", marginBottom: 2, letterSpacing: "0.05em" }}>{key}</p>}
+                  <p style={{ fontFamily: S.body, fontSize: 13, color: "rgba(245,236,215,0.68)", lineHeight: 1.55 }}>{val}</p>
+                </div>
+              ))}
             </div>
           ))}
           <button onClick={clearEntries} style={{ marginTop: 8, background: "none", border: "1px solid rgba(139,58,58,0.2)", borderRadius: 8, padding: "8px 14px", cursor: "pointer", color: "rgba(139,58,58,0.45)", fontFamily: S.body, fontSize: 11, width: "100%" }}>Clear Journal</button>
@@ -846,8 +885,26 @@ export default function Lumen() {
   const { user, loading: authLoading, signIn, signOut } = useAuth();
   const journal = useJournal(user);
 
+  // Set dark theme for iPhone safe areas & prevent zoom
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.name = "theme-color";
+    meta.content = "#0d1117";
+    document.head.appendChild(meta);
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) viewport.content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
+    document.body.style.background = "#0d1117";
+    document.body.style.overflowX = "hidden";
+    document.documentElement.style.overflowX = "hidden";
+    // Apple status bar
+    const appleMeta = document.createElement("meta");
+    appleMeta.name = "apple-mobile-web-app-status-bar-style";
+    appleMeta.content = "black-translucent";
+    document.head.appendChild(appleMeta);
+  }, []);
+
   return (
-    <div style={{ minHeight: "100vh", background: S.bg, fontFamily: S.body, color: S.text, position: "relative", overflow: "hidden" }}>
+    <div style={{ minHeight: "100vh", background: S.bg, fontFamily: S.body, color: S.text, position: "relative", overflowX: "hidden", width: "100%", maxWidth: "100vw" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
         @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
@@ -855,13 +912,16 @@ export default function Lumen() {
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
         @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
         @keyframes crossGlow { 0%, 100% { filter: drop-shadow(0 0 8px rgba(191,155,48,0.3)); } 50% { filter: drop-shadow(0 0 20px rgba(191,155,48,0.6)); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        html, body, #root { background: #0d1117 !important; margin: 0; padding: 0; overflow-x: hidden; width: 100%; max-width: 100vw; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         textarea:focus { outline: none; }
+        textarea, input, button { font-size: 16px !important; } /* Prevent iOS zoom on focus */
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(191,155,48,0.2); border-radius: 3px; }
       `}</style>
-      <div style={{ position: "fixed", top: "-20%", right: "-10%", width: 450, height: 450, borderRadius: "50%", background: "radial-gradient(circle, rgba(191,155,48,0.05) 0%, transparent 70%)", animation: "glow 8s ease-in-out infinite", pointerEvents: "none" }} />
+      <div style={{ position: "fixed", top: "-20%", right: "0", width: 350, height: 350, borderRadius: "50%", background: "radial-gradient(circle, rgba(191,155,48,0.05) 0%, transparent 70%)", animation: "glow 8s ease-in-out infinite", pointerEvents: "none", zIndex: 0 }} />
 
       {view === VIEWS.HOME && <HomeScreen setView={setView} user={user} signIn={signIn} signOut={signOut} />}
       {view === VIEWS.ROSARY && <RosarySelect onSelect={s => { setRosarySet(s); setView(VIEWS.ROSARY_PRAY); }} onBack={() => setView(VIEWS.HOME)} />}
