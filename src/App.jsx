@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useLocale } from "./i18n/LocaleContext";
+import { LOCALES } from "./i18n/translations";
 import Footer from "./components/Footer";
+
+const GOSPEL_RSS = {
+  [LOCALES.ES_ES]: typeof import.meta !== "undefined" && import.meta.env?.DEV ? "/api/gospel-es" : "https://www.aciprensa.com/rss/evangelio",
+  [LOCALES.EN_US]: typeof import.meta !== "undefined" && import.meta.env?.DEV ? "/api/gospel-en" : "https://bible.usccb.org/readings.rss",
+};
+const GOSPEL_CACHE_PREFIX = "lumen_gospel_";
 
 // ═══════════════════════════════════════════════════════
 // LUMEN — Catholic Spiritual Companion
@@ -20,7 +27,7 @@ const CONFIG = {
 // DATA
 // ═══════════════════════════════════════════════════════
 
-const VIEWS = { HOME: "home", ROSARY: "rosary", ROSARY_PRAY: "rosary_pray", CONFESSION: "confession", EXAMEN: "examen", PRAYERS: "prayers", JOURNAL: "journal" };
+const VIEWS = { HOME: "home", ROSARY: "rosary", ROSARY_PRAY: "rosary_pray", CONFESSION: "confession", EXAMEN: "examen", PRAYERS: "prayers", JOURNAL: "journal", GOSPEL: "gospel" };
 
 // Rosary: only structure (day key + color). All text from translations.content.
 const MYSTERY_META = {
@@ -246,8 +253,9 @@ function HomeScreen({ setView, user, signIn, signOut }) {
         <Card title={t("home.confessionPrep")} icon="💧" desc={t("home.confessionPrepDesc")} onClick={() => setView(VIEWS.CONFESSION)} delay={0.18} />
         <Card title={t("home.prayerLibrary")} icon="📖" desc={t("home.prayerLibraryDesc")} onClick={() => setView(VIEWS.PRAYERS)} delay={0.23} />
       </div>
-      <div style={{ width: "100%", marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, width: "100%", marginBottom: 12 }}>
         <Card title={t("home.prayerJournal")} icon="✍️" desc={user ? t("home.prayerJournalDescSynced", { name: user.id === "local_user" ? t("common.demoUserName") : user.name }) : t("home.prayerJournalDescGuest")} onClick={() => setView(VIEWS.JOURNAL)} delay={0.28} />
+        <Card title={t("home.dailyGospel")} icon="📜" desc={t("home.dailyGospelDesc")} onClick={() => setView(VIEWS.GOSPEL)} delay={0.3} />
       </div>
 
       <p style={{ fontFamily: S.heading, fontSize: 11.5, color: "rgba(245,236,215,0.22)", textAlign: "center", lineHeight: 1.6, maxWidth: 300, animation: "fadeUp 0.5s ease-out 0.4s both" }}>
@@ -496,6 +504,125 @@ function ConfessionPrep({ onBack }) {
       <div style={{ padding: "12px 20px 20px", display: "flex", gap: 10, flexShrink: 0 }}>
         <OutBtn onClick={() => setCi(Math.max(0, ci-1))} disabled={ci === 0}>←</OutBtn>
         <div style={{ flex: 1.5 }}><Btn full onClick={() => ci < 9 ? setCi(ci+1) : setDone(true)} color={S.gold}>{ci < 9 ? t("common.next") : t("common.summary")}</Btn></div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// DAILY GOSPEL (RSS: ACI Prensa / USCCB)
+// ═══════════════════════════════════════════════════════
+function parseGospelRss(xmlText) {
+  const doc = new DOMParser().parseFromString(xmlText, "text/xml");
+  const items = doc.getElementsByTagName("item");
+  const item = items[0];
+  if (!item) return null;
+  const titleEl = item.getElementsByTagName("title")[0];
+  const descEl = item.getElementsByTagName("description")[0];
+  const dayTitle = titleEl?.textContent?.trim() || "";
+  const descriptionHtml = descEl?.textContent?.trim() || "";
+  if (!descriptionHtml) return { dayTitle, readings: [] };
+  const htmlDoc = new DOMParser().parseFromString(descriptionHtml, "text/html");
+  const readings = [];
+  const h4s = htmlDoc.body.querySelectorAll("h4");
+  h4s.forEach((h4) => {
+    const subtitle = h4.textContent.trim();
+    let text = "";
+    let next = h4.nextElementSibling;
+    if (next && (next.classList.contains("poetry") || next.tagName === "DIV")) {
+      const p = next.querySelector("p");
+      if (p) {
+        text = p.innerHTML.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").trim();
+      }
+    }
+    if (subtitle) readings.push({ subtitle, text });
+  });
+  return { dayTitle, readings };
+}
+
+function DailyGospel({ onBack }) {
+  const { t, locale } = useLocale();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [data, setData] = useState(null);
+  const dateKey = useMemo(() => new Date().toISOString().slice(0, 10).replace(/-/g, ""), []);
+
+  useEffect(() => {
+    const cacheKey = `${GOSPEL_CACHE_PREFIX}${locale}_${dateKey}`;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setData(parsed);
+        setLoading(false);
+        return;
+      }
+    } catch (_) {}
+
+    const url = GOSPEL_RSS[locale] || GOSPEL_RSS[LOCALES.EN_US];
+    fetch(url, { mode: "cors" })
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error("Fetch failed"))))
+      .then((xmlText) => {
+        const parsed = parseGospelRss(xmlText);
+        if (parsed && (parsed.dayTitle || parsed.readings?.length)) {
+          setData(parsed);
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(parsed));
+          } catch (_) {}
+        } else {
+          setError(true);
+        }
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [locale, dateKey]);
+
+  const sourceLabel = locale === LOCALES.ES_ES ? t("gospel.sourceAciprensa") : t("gospel.sourceUsccb");
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <Header title={t("gospel.title")} onBack={onBack} />
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>
+          <p style={{ fontFamily: S.body, fontSize: 14, color: S.textDim }}>{t("gospel.loading")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <Header title={t("gospel.title")} onBack={onBack} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
+          <p style={{ fontFamily: S.body, fontSize: 14, color: S.textDim, marginBottom: 16 }}>{t("gospel.error")}</p>
+          <Btn onClick={onBack} color={S.gold}>{t("common.returnHome")}</Btn>
+        </div>
+      </div>
+    );
+  }
+
+  const { dayTitle, readings } = data;
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <Header title={t("gospel.title")} onBack={onBack} />
+      <div style={{ flex: 1, padding: "20px 20px 24px", maxWidth: 560, margin: "0 auto", width: "100%", overflow: "auto" }}>
+        <h1 style={{ fontFamily: S.heading, fontSize: 26, fontWeight: 600, color: S.gold, textAlign: "center", marginBottom: 24, lineHeight: 1.3 }}>
+          {dayTitle}
+        </h1>
+        {readings.map((r, i) => (
+          <div key={i} style={{ marginBottom: 24, padding: "16px 18px", background: S.cardBg, border: `1px solid ${S.borderDim}`, borderRadius: 12 }}>
+            <h4 style={{ fontFamily: S.heading, fontSize: 16, fontWeight: 600, color: S.gold, marginBottom: 10, letterSpacing: "0.02em" }}>
+              {r.subtitle}
+            </h4>
+            <p style={{ fontFamily: S.body, fontSize: 14, color: "rgba(245,236,215,0.88)", lineHeight: 1.65, whiteSpace: "pre-line", textAlign: "left" }}>
+              {r.text}
+            </p>
+          </div>
+        ))}
+        <p style={{ fontFamily: S.body, fontSize: 11, color: "rgba(245,236,215,0.35)", textAlign: "center", marginTop: 8 }}>
+          {sourceLabel}
+        </p>
       </div>
     </div>
   );
@@ -799,6 +926,7 @@ export default function Lumen() {
         {view === VIEWS.EXAMEN && <DailyExamen onBack={() => setView(VIEWS.HOME)} addJournalEntry={user ? journal.addEntry : null} user={user} signIn={signIn} />}
         {view === VIEWS.PRAYERS && <PrayerLibrary onBack={() => setView(VIEWS.HOME)} />}
         {view === VIEWS.JOURNAL && <JournalView onBack={() => setView(VIEWS.HOME)} journal={journal} user={user} signIn={signIn} />}
+        {view === VIEWS.GOSPEL && <DailyGospel onBack={() => setView(VIEWS.HOME)} />}
       </div>
       <Footer user={user} signIn={signIn} signOut={signOut} />
     </div>

@@ -80,6 +80,15 @@ const enUS = {
     prayerJournal: "Prayer Journal",
     prayerJournalDescSynced: "Synced for {name} — persists across devices",
     prayerJournalDescGuest: "Sign in to sync across devices",
+    dailyGospel: "Daily Gospel",
+    dailyGospelDesc: "Today's Mass readings — Word of the day",
+  },
+  gospel: {
+    title: "Daily Gospel",
+    loading: "Loading readings...",
+    error: "Could not load readings. Try again later.",
+    sourceAciprensa: "Source: ACI Prensa",
+    sourceUsccb: "Source: USCCB",
   },
   footer: {
     language: "Language",
@@ -555,6 +564,15 @@ const esES = {
     prayerJournal: "Diario de oración",
     prayerJournalDescSynced: "Sincronizado para {name} — en todos tus dispositivos",
     prayerJournalDescGuest: "Inicia sesión para sincronizar entre dispositivos",
+    dailyGospel: "Evangelio del Día",
+    dailyGospelDesc: "Lecturas de la Misa de hoy — Palabra del día",
+  },
+  gospel: {
+    title: "Evangelio del Día",
+    loading: "Cargando lecturas...",
+    error: "No se pudieron cargar las lecturas. Inténtalo más tarde.",
+    sourceAciprensa: "Fuente: ACI Prensa",
+    sourceUsccb: "Fuente: USCCB",
   },
   footer: {
     language: "Idioma",
