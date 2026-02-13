@@ -11,7 +11,28 @@ const styles = {
 };
 
 export default function Footer({ user, signOut, signInButton }) {
-  const { locale, setLocale, t } = useLocale();
+  const { locale, setLocale, t, childMode, setChildMode } = useLocale();
+
+  const toggleBtn = (active, label, onClick, ariaLabel) => (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      aria-label={ariaLabel}
+      style={{
+        padding: "6px 12px",
+        borderRadius: 8,
+        border: active ? `1px solid ${styles.gold}` : `1px solid ${styles.borderDim}`,
+        background: active ? "rgba(191,155,48,0.12)" : "transparent",
+        color: active ? styles.gold : styles.textDim,
+        fontFamily: styles.body,
+        fontSize: 12,
+        cursor: "pointer",
+      }}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <footer
@@ -35,40 +56,17 @@ export default function Footer({ user, signOut, signInButton }) {
           {t("footer.language")}
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <button
-            type="button"
-            onClick={() => setLocale(LOCALES.EN_US)}
-            aria-pressed={locale === LOCALES.EN_US}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 8,
-              border: locale === LOCALES.EN_US ? `1px solid ${styles.gold}` : `1px solid ${styles.borderDim}`,
-              background: locale === LOCALES.EN_US ? "rgba(191,155,48,0.12)" : "transparent",
-              color: locale === LOCALES.EN_US ? styles.gold : styles.textDim,
-              fontFamily: styles.body,
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            {t("footer.english")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setLocale(LOCALES.ES_ES)}
-            aria-pressed={locale === LOCALES.ES_ES}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 8,
-              border: locale === LOCALES.ES_ES ? `1px solid ${styles.gold}` : `1px solid ${styles.borderDim}`,
-              background: locale === LOCALES.ES_ES ? "rgba(191,155,48,0.12)" : "transparent",
-              color: locale === LOCALES.ES_ES ? styles.gold : styles.textDim,
-              fontFamily: styles.body,
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            {t("footer.spanish")}
-          </button>
+          {toggleBtn(locale === LOCALES.EN_US, t("footer.english"), () => setLocale(LOCALES.EN_US))}
+          {toggleBtn(locale === LOCALES.ES_ES, t("footer.spanish"), () => setLocale(LOCALES.ES_ES))}
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontFamily: styles.heading, color: styles.gold, letterSpacing: "0.04em" }}>
+          {t("footer.audience")}
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {toggleBtn(!childMode, t("footer.adults"), () => setChildMode(false))}
+          {toggleBtn(childMode, t("footer.kids"), () => setChildMode(true))}
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
