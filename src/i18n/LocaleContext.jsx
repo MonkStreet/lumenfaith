@@ -3,6 +3,8 @@ import {
   getLocale,
   setLocaleStorage,
   getTranslations,
+  getChildMode,
+  setChildModeStorage,
   tKey,
   LOCALES,
 } from "./translations";
@@ -11,6 +13,7 @@ const LocaleContext = createContext(null);
 
 export function LocaleProvider({ children }) {
   const [locale, setLocaleState] = useState(getLocale);
+  const [childMode, setChildModeState] = useState(getChildMode);
 
   const setLocale = useCallback((next) => {
     if (next !== LOCALES.EN_US && next !== LOCALES.ES_ES) return;
@@ -18,7 +21,13 @@ export function LocaleProvider({ children }) {
     setLocaleState(next);
   }, []);
 
-  const translations = useMemo(() => getTranslations(locale), [locale]);
+  const setChildMode = useCallback((on) => {
+    const val = !!on;
+    setChildModeStorage(val);
+    setChildModeState(val);
+  }, []);
+
+  const translations = useMemo(() => getTranslations(locale, childMode), [locale, childMode]);
 
   const t = useCallback(
     (key, params = {}) => tKey(translations, key, params),
@@ -32,8 +41,8 @@ export function LocaleProvider({ children }) {
   }, [locale, translations]);
 
   const value = useMemo(
-    () => ({ locale, setLocale, t, translations, LOCALES }),
-    [locale, setLocale, t, translations]
+    () => ({ locale, setLocale, t, translations, LOCALES, childMode, setChildMode }),
+    [locale, setLocale, t, translations, childMode, setChildMode]
   );
 
   return (

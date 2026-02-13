@@ -43,6 +43,22 @@ export function setLocaleStorage(locale) {
   } catch (_) {}
 }
 
+// ─── Child-mode persistence ────────────────────────────────────────────────
+const CHILD_MODE_KEY = "lumen_child_mode";
+
+export function getChildMode() {
+  try {
+    return localStorage.getItem(CHILD_MODE_KEY) === "true";
+  } catch (_) {}
+  return false;
+}
+
+export function setChildModeStorage(on) {
+  try {
+    localStorage.setItem(CHILD_MODE_KEY, on ? "true" : "false");
+  } catch (_) {}
+}
+
 // ─── English (US) ─────────────────────────────────────────────────────────
 const enUS = {
   common: {
@@ -96,6 +112,9 @@ const enUS = {
     language: "Language",
     english: "English",
     spanish: "Español",
+    audience: "Mode",
+    kids: "Kids",
+    adults: "Adults",
   },
   rosary: {
     title: "Holy Rosary",
@@ -588,6 +607,9 @@ const esES = {
     language: "Idioma",
     english: "English",
     spanish: "Español",
+    audience: "Modo",
+    kids: "Niños",
+    adults: "Adultos",
   },
   rosary: {
     title: "Santo Rosario",
@@ -674,19 +696,248 @@ const messages = {
   [LOCALES.ES_ES]: esES,
 };
 
+// ─── Child-mode UI string overlays ─────────────────────────────────────────
+// Only keys that differ from the adult version need to be listed here.
+const enUSChild = {
+  home: {
+    tagline: "My Catholic Friend",
+    documentTitle: "Lumen Kids — My Catholic Friend",
+    disclaimer: "A fun way to learn about prayer and God's love!",
+    holyRosaryDesc: "Pray the Rosary step by step",
+    dailyExamenDesc: "Think about your day with God",
+    confessionPrepDesc: "Get ready to say sorry to God",
+    prayerLibraryDesc: "Learn your favorite prayers",
+    dailyGospelDesc: "Today's Bible reading",
+    prayerJournalDescGuest: "Sign in to save your prayers",
+    prayerJournalDescSynced: "Saved for {name}",
+  },
+  examen: {
+    title: "My Daily Prayer Time",
+    completeTitle: "Great Job!",
+    wellDone: "Great Job!",
+    reflectionsSaved: "Your thoughts have been saved! ✓",
+    signInToSave: "Sign in with Google to save your thoughts.",
+    completeNoSave: "You finished your prayer time! Sign in next time to save your thoughts.",
+    completeInviteWrite: "Next time you can write your thoughts in each step.",
+    yourReflections: "What are you thinking...",
+  },
+  confession: {
+    title: "Saying Sorry to God",
+    summaryTitle: "My List for Confession",
+    noItemsChecked: "Nothing marked. Confession is still a great way to feel God's love!",
+    quote: "\"God is so happy when we say sorry and come back to Him!\"",
+    quoteRef: "— from Luke 15:7",
+  },
+};
+
+const esESChild = {
+  home: {
+    tagline: "Mi Amigo Católico",
+    documentTitle: "Lumen Kids — Mi Amigo Católico",
+    disclaimer: "¡Una forma divertida de aprender a rezar y conocer el amor de Dios!",
+    holyRosaryDesc: "Reza el Rosario paso a paso",
+    dailyExamenDesc: "Piensa en tu día con Dios",
+    confessionPrepDesc: "Prepárate para decirle perdón a Dios",
+    prayerLibraryDesc: "Aprende tus oraciones favoritas",
+    dailyGospelDesc: "La lectura de la Biblia de hoy",
+    prayerJournalDescGuest: "Inicia sesión para guardar tus oraciones",
+    prayerJournalDescSynced: "Guardado para {name}",
+  },
+  examen: {
+    title: "Mi Rato de Oración",
+    completeTitle: "¡Muy Bien!",
+    wellDone: "¡Muy Bien!",
+    reflectionsSaved: "¡Tus pensamientos se han guardado! ✓",
+    signInToSave: "Inicia sesión con Google para guardar tus pensamientos.",
+    completeNoSave: "¡Terminaste tu rato de oración! Inicia sesión la próxima vez para guardar.",
+    completeInviteWrite: "La próxima vez puedes escribir tus pensamientos en cada paso.",
+    yourReflections: "¿En qué estás pensando...",
+  },
+  confession: {
+    title: "Pedir Perdón a Dios",
+    summaryTitle: "Mi Lista para la Confesión",
+    noItemsChecked: "Nada marcado. ¡La confesión es una forma genial de sentir el amor de Dios!",
+    quote: "\"¡Dios se pone muy contento cuando le pedimos perdón y volvemos a Él!\"",
+    quoteRef: "— de Lucas 15,7",
+  },
+};
+
+const childMessages = {
+  [LOCALES.EN_US]: enUSChild,
+  [LOCALES.ES_ES]: esESChild,
+};
+
+// ─── Child-mode content (long-form text) ───────────────────────────────────
+// Only overrides: mysteries meditations, commandmentExam, examenSteps, saintsQuotes.
+// Prayers, litany, prayerTitles, and prayerLibrary fall through to the adult version.
+
+function getEnChildContent() {
+  return {
+    mysteries: {
+      Joyful: [
+        { title: "The Annunciation", fruit: "Humility", scripture: "The angel said to her, 'Do not be afraid, Mary, for you have found favor with God.' — Luke 1:30", meditation: "An angel named Gabriel visited Mary and told her she would be Jesus's mom! Mary was surprised but brave. She said 'yes' to God. Can you say 'yes' to God today too?" },
+        { title: "The Visitation", fruit: "Love of Neighbor", scripture: "When Elizabeth heard Mary's greeting, the infant leaped in her womb. — Luke 1:41", meditation: "Mary hurried to visit her cousin Elizabeth. When Elizabeth heard Mary's voice, baby John jumped for joy inside her! When we visit people and share God's love, it makes everyone happy." },
+        { title: "The Nativity", fruit: "Poverty of Spirit", scripture: "She wrapped him in swaddling clothes and laid him in a manger, because there was no room for them in the inn. — Luke 2:7", meditation: "Baby Jesus was born in a little stable in Bethlehem. There was no room at the inn, so He slept in a manger where animals eat. The King of everything chose to be born as a tiny baby! God loves being close to us." },
+        { title: "The Presentation", fruit: "Obedience", scripture: "A sword will pierce your own soul too. — Luke 2:35", meditation: "Mary and Joseph brought baby Jesus to the Temple to present Him to God. An old man named Simeon had waited his whole life to see the Savior, and he was so happy! God always keeps His promises." },
+        { title: "Finding in the Temple", fruit: "Joy in Finding Jesus", scripture: "Why were you searching for me? Did you not know I must be in my Father's house? — Luke 2:49", meditation: "When Jesus was 12, He stayed behind at the Temple without telling Mary and Joseph. They looked for Him for three days! They found Him talking with the teachers about God. Whenever you feel far from God, keep looking — He's waiting for you." },
+      ],
+      Sorrowful: [
+        { title: "The Agony in the Garden", fruit: "Sorrow for Sin", scripture: "Father, if you are willing, take this cup from me; yet not my will, but yours be done. — Luke 22:42", meditation: "Jesus prayed in a garden the night before He died. He was very scared and sad, but He told God, 'I'll do what You want.' When we're scared, we can talk to God just like Jesus did." },
+        { title: "The Scourging at the Pillar", fruit: "Mortification", scripture: "By his wounds we are healed. — Isaiah 53:5", meditation: "Soldiers hurt Jesus very badly. He let them because He loves us so much. Every time we're sorry for our mistakes, Jesus says, 'I love you — that's why I did this for you.'" },
+        { title: "The Crowning with Thorns", fruit: "Courage", scripture: "They wove a crown of thorns and placed it on his head, and mocked him saying, 'Hail, King of the Jews!' — Matthew 27:29", meditation: "The soldiers put a crown of sharp thorns on Jesus's head and made fun of Him. Even when people are mean to us for doing the right thing, we can be brave like Jesus." },
+        { title: "The Carrying of the Cross", fruit: "Patience", scripture: "Whoever wishes to come after me must deny himself, take up his cross, and follow me. — Matthew 16:24", meditation: "Jesus had to carry a big, heavy cross. He fell down three times, but He got up every time! A man named Simon helped Him. We can help each other carry our hard times too." },
+        { title: "The Crucifixion", fruit: "Self-Denial", scripture: "Father, forgive them, for they know not what they do. — Luke 23:34", meditation: "Jesus died on the Cross to save us. Even while He was hurting, He forgave the people who hurt Him and took care of His mom. Jesus's love for us is so big, nothing can stop it." },
+      ],
+      Glorious: [
+        { title: "The Resurrection", fruit: "Faith", scripture: "He is not here; he has risen, just as he said. — Matthew 28:6", meditation: "On the third day, Jesus came back to life! The big stone was rolled away and the tomb was empty. Jesus is alive! Because of this, we know that with God, everything is possible." },
+        { title: "The Ascension", fruit: "Hope", scripture: "I am with you always, until the end of the age. — Matthew 28:20", meditation: "Jesus went up to Heaven to prepare a place for us. But He promised, 'I am with you always!' He's with us every single day, even when we can't see Him." },
+        { title: "The Descent of the Holy Spirit", fruit: "Wisdom", scripture: "They were all filled with the Holy Spirit and began to speak in different tongues. — Acts 2:4", meditation: "God sent the Holy Spirit to Jesus's friends. The Holy Spirit made them brave and helped them tell everyone about Jesus. The same Holy Spirit lives in your heart too!" },
+        { title: "The Assumption of Mary", fruit: "Grace of a Happy Death", scripture: "Blessed is she who believed that what was spoken to her by the Lord would be fulfilled. — Luke 1:45", meditation: "God took Mary, Jesus's mom, to Heaven body and soul. She was so faithful and good! Mary is in Heaven now, and she prays for us every day like the best mom ever." },
+        { title: "The Coronation of Mary", fruit: "Trust in Mary's Intercession", scripture: "A great sign appeared in the sky, a woman clothed with the sun, with the moon under her feet. — Revelation 12:1", meditation: "Jesus crowned Mary as Queen of Heaven! She is our Heavenly Mom. Whenever you need help, you can ask Mary to pray for you. She always listens." },
+      ],
+      Luminous: [
+        { title: "The Baptism in the Jordan", fruit: "Openness to the Holy Spirit", scripture: "This is my beloved Son, with whom I am well pleased. — Matthew 3:17", meditation: "Jesus was baptized in the river Jordan. God the Father said, 'This is my beloved Son!' When you were baptized, God said the same thing about YOU. You are God's beloved child!" },
+        { title: "The Wedding at Cana", fruit: "To Jesus Through Mary", scripture: "His mother said to the servants, 'Do whatever he tells you.' — John 2:5", meditation: "At a wedding party, they ran out of drinks. Mary told Jesus, and He turned water into the best wine ever! Mary always brings our needs to Jesus." },
+        { title: "The Proclamation of the Kingdom", fruit: "Repentance and Trust in God", scripture: "The kingdom of God is at hand. Repent, and believe in the gospel. — Mark 1:15", meditation: "Jesus told everyone that God's kingdom is here! It's a kingdom of love, kindness, and forgiveness. Every time you're kind to someone, you help build God's kingdom." },
+        { title: "The Transfiguration", fruit: "Desire for Holiness", scripture: "His face shone like the sun, and his clothes became white as light. — Matthew 17:2", meditation: "On a mountain, Jesus's face shone bright like the sun! His friends saw how amazing He really is. God shows us beautiful things to help us keep going on hard days." },
+        { title: "The Institution of the Eucharist", fruit: "Adoration", scripture: "This is my body, which will be given for you; do this in memory of me. — Luke 22:19", meditation: "At the Last Supper, Jesus took bread and said, 'This is my body.' He gave us the most special gift — Himself! Every time you go to Mass, Jesus is really there." },
+      ],
+    },
+    commandmentExam: [
+      { commandment: "1st — Love God above all things.", questions: ["Do I remember to pray every day?", "Do I pay attention at Mass?", "Do I trust God when things are hard?", "Do I put God first, before toys, games, or screens?"] },
+      { commandment: "2nd — Use God's name with love.", questions: ["Do I say God's name with respect?", "Do I use Jesus's name only in prayer, never as a bad word?", "Do I keep my promises?"] },
+      { commandment: "3rd — Keep Sunday holy.", questions: ["Do I go to Mass every Sunday?", "Do I pay attention and participate at Mass?", "Do I make Sunday a special day for God and family?"] },
+      { commandment: "4th — Honor your father and mother.", questions: ["Do I obey my parents and teachers?", "Am I respectful even when I disagree?", "Do I help out at home without being asked?", "Am I kind to my brothers and sisters?"] },
+      { commandment: "5th — Respect all life.", questions: ["Have I hit, kicked, or hurt anyone?", "Have I said mean things to hurt someone's feelings?", "Have I bullied or left someone out on purpose?", "Have I been mean to animals?", "Do I forgive others when they say sorry?"] },
+      { commandment: "6th — Be pure in actions.", questions: ["Do I treat my body and other people's bodies with respect?", "Do I choose shows, games, and websites that are good for me?"] },
+      { commandment: "7th — Do not steal.", questions: ["Have I taken something that wasn't mine?", "Have I cheated on a test or in a game?", "Do I take care of other people's things?", "Have I shared with others who have less?"] },
+      { commandment: "8th — Always tell the truth.", questions: ["Have I told a lie?", "Have I blamed someone else for something I did?", "Have I said mean things about someone behind their back?", "Do I keep secrets that someone trusted me with?"] },
+      { commandment: "9th — Keep your thoughts clean.", questions: ["Do I try to think good thoughts about others?", "Do I avoid things that put bad ideas in my head?"] },
+      { commandment: "10th — Be happy for others.", questions: ["Have I been jealous of what others have?", "Am I grateful for what God has given me?", "Do I wish I had someone else's things instead of being thankful?", "Am I happy for my friends when good things happen to them?"] },
+    ],
+    examenSteps: [
+      { title: "God Is Here", icon: "✦", instruction: "Close your eyes. Take a deep breath. God is sitting right beside you! He loves you more than you can imagine.", prompt: "\"God, I know you're here with me. Help me talk to you.\"", questions: ["Take a deep breath and be still for a moment. Imagine God smiling at you."] },
+      { title: "Thank You", icon: "♡", instruction: "Think about your day. What good things happened? Maybe someone was nice to you, or you had a yummy snack, or you laughed really hard.", prompt: "\"Every good thing comes from God.\" — James 1:17", questions: ["What made you smile today?", "Who are you thankful for today?", "What's something good that happened that you almost forgot about?"] },
+      { title: "My Day", icon: "◈", instruction: "Play your day like a movie in your head. When did you feel happy? When did you feel sad or upset?", prompt: "Just notice — God is watching the movie with you.", questions: ["When did you feel the happiest today?", "Was there a time you felt sad, angry, or lonely?", "Did you feel God close to you at any moment?"] },
+      { title: "I'm Sorry", icon: "✝", instruction: "Was there a time today when you weren't your best self? That's OK! God is like the best dad ever — He always forgives you. Just tell Him about it.", prompt: "\"God always forgives us when we're sorry.\" — from Isaiah 1:18", questions: ["Was I unkind to anyone today?", "Did I do something I know was wrong?", "Is there someone I need to say sorry to?"] },
+      { title: "Tomorrow", icon: "☀", instruction: "What's happening tomorrow? Is there anything you're worried about? Ask God to help you be brave and kind!", prompt: "\"God's love is new every morning!\" — Lamentations 3:23", questions: ["What do you need God's help with tomorrow?", "How can you be kind to someone tomorrow?", "Say a prayer and ask God to be with you tomorrow!"] },
+    ],
+    saintsQuotes: [
+      { quote: "Be who God meant you to be and you will set the world on fire.", saint: "St. Catherine of Siena" },
+      { quote: "Pray, hope, and don't worry.", saint: "St. Padre Pio" },
+      { quote: "Do small things with great love.", saint: "St. Teresa of Calcutta" },
+      { quote: "Joy is the surest sign of God being with us.", saint: "St. Teresa of Ávila" },
+      { quote: "Be patient with everyone, especially yourself!", saint: "St. Francis de Sales" },
+      { quote: "God loves each of us as if there were only one of us.", saint: "St. Augustine" },
+      { quote: "Nothing is impossible for God!", saint: "St. Thérèse of Lisieux" },
+      { quote: "Every day is a new chance to become a saint.", saint: "St. John Paul II" },
+    ],
+  };
+}
+
+function getEsChildContent() {
+  return {
+    mysteries: {
+      Joyful: [
+        { title: "La Anunciación", fruit: "Humildad", scripture: "El ángel le dijo: «No temas, María, porque has hallado gracia delante de Dios.» — Lc 1,30", meditation: "¡Un ángel llamado Gabriel visitó a María y le dijo que sería la mamá de Jesús! María se sorprendió pero fue valiente. Le dijo 'sí' a Dios. ¿Tú también puedes decirle 'sí' a Dios hoy?" },
+        { title: "La Visitación", fruit: "Amor al prójimo", scripture: "Al oír Isabel el saludo de María, el niño saltó en su seno. — Lc 1,41", meditation: "María fue corriendo a visitar a su prima Isabel. ¡Cuando Isabel escuchó la voz de María, el bebé Juan saltó de alegría dentro de ella! Cuando visitamos a la gente y compartimos el amor de Dios, todos se ponen contentos." },
+        { title: "La Natividad", fruit: "Pobreza de espíritu", scripture: "Lo envolvió en pañales y lo acostó en un pesebre, porque no había sitio para ellos en el albergue. — Lc 2,7", meditation: "El niño Jesús nació en un pequeño establo en Belén. No había lugar en la posada, así que durmió en un pesebre donde comen los animales. ¡El Rey de todo eligió nacer como un bebé pequeñito! A Dios le encanta estar cerca de nosotros." },
+        { title: "La Presentación en el Templo", fruit: "Obediencia", scripture: "Y una espada atravesará tu alma. — Lc 2,35", meditation: "María y José llevaron al niño Jesús al Templo para presentarlo a Dios. ¡Un anciano llamado Simeón había esperado toda su vida para ver al Salvador, y estaba muy feliz! Dios siempre cumple sus promesas." },
+        { title: "El Hallazgo del Niño Jesús en el Templo", fruit: "Gozo al encontrar a Jesús", scripture: "¿Por qué me buscabais? ¿No sabíais que yo debo ocuparme de las cosas de mi Padre? — Lc 2,49", meditation: "Cuando Jesús tenía 12 años, se quedó en el Templo sin decirle a María y José. ¡Lo buscaron durante tres días! Lo encontraron hablando con los maestros sobre Dios. Cuando te sientas lejos de Dios, sigue buscando — Él te está esperando." },
+      ],
+      Sorrowful: [
+        { title: "La Agonía en el Huerto", fruit: "Dolor de los pecados", scripture: "Padre, si quieres, aparta de mí este cáliz; pero no se haga mi voluntad, sino la tuya. — Lc 22,42", meditation: "Jesús rezó en un jardín la noche antes de morir. Tenía mucho miedo y estaba triste, pero le dijo a Dios: 'Haré lo que Tú quieras.' Cuando tenemos miedo, podemos hablar con Dios igual que Jesús." },
+        { title: "La Flagelación", fruit: "Mortificación", scripture: "Con sus llagas hemos sido curados. — Is 53,5", meditation: "Los soldados lastimaron mucho a Jesús. Él lo permitió porque nos ama muchísimo. Cada vez que le pedimos perdón, Jesús dice: 'Te quiero, por eso hice esto por ti.'" },
+        { title: "La Coronación de espinas", fruit: "Valor", scripture: "Tejieron una corona de espinas, se la pusieron en la cabeza y le decían: «¡Salve, rey de los judíos!» — Mt 27,29", meditation: "Los soldados le pusieron a Jesús una corona de espinas puntiagudas y se burlaron de Él. Aunque la gente se burle de nosotros por hacer lo correcto, podemos ser valientes como Jesús." },
+        { title: "Jesús con la Cruz a cuestas", fruit: "Paciencia en las pruebas", scripture: "El que quiera venir en pos de mí, niéguese a sí mismo, tome su cruz y sígame. — Mt 16,24", meditation: "Jesús tuvo que cargar una cruz muy grande y pesada. ¡Se cayó tres veces, pero se levantó cada vez! Un hombre llamado Simón le ayudó. Nosotros también podemos ayudarnos unos a otros en los momentos difíciles." },
+        { title: "La Crucifixión y muerte de Jesús", fruit: "Abnegación", scripture: "Padre, perdónalos, porque no saben lo que hacen. — Lc 23,34", meditation: "Jesús murió en la Cruz para salvarnos. Incluso mientras sufría, perdonó a los que le hacían daño y cuidó de su mamá. El amor de Jesús por nosotros es tan grande que nada puede pararlo." },
+      ],
+      Glorious: [
+        { title: "La Resurrección", fruit: "Fe", scripture: "No está aquí, ha resucitado, como había dicho. — Mt 28,6", meditation: "¡Al tercer día, Jesús resucitó! La gran piedra fue movida y la tumba estaba vacía. ¡Jesús está vivo! Gracias a esto, sabemos que con Dios todo es posible." },
+        { title: "La Ascensión", fruit: "Esperanza", scripture: "Yo estoy con vosotros todos los días, hasta el fin del mundo. — Mt 28,20", meditation: "Jesús subió al Cielo para prepararnos un lugar. Pero prometió: '¡Estaré con ustedes siempre!' Él está con nosotros todos los días, aunque no podamos verlo." },
+        { title: "La Venida del Espíritu Santo", fruit: "Sabiduría", scripture: "Quedaron todos llenos del Espíritu Santo y comenzaron a hablar en otras lenguas. — Hch 2,4", meditation: "Dios envió al Espíritu Santo a los amigos de Jesús. ¡El Espíritu Santo los hizo valientes y les ayudó a contarle a todos sobre Jesús! El mismo Espíritu Santo vive en tu corazón también." },
+        { title: "La Asunción de María", fruit: "Gracia de una buena muerte", scripture: "Bendita tú, que has creído, porque lo que te ha dicho el Señor se cumplirá. — Lc 1,45", meditation: "Dios llevó a María, la mamá de Jesús, al Cielo en cuerpo y alma. ¡Ella fue tan fiel y tan buena! María está en el Cielo ahora y reza por nosotros cada día como la mejor mamá." },
+        { title: "La Coronación de María", fruit: "Confianza en la intercesión de María", scripture: "Una gran señal apareció en el cielo: una mujer vestida de sol, con la luna bajo sus pies. — Ap 12,1", meditation: "¡Jesús coronó a María como Reina del Cielo! Ella es nuestra Mamá del Cielo. Cuando necesites ayuda, puedes pedirle a María que rece por ti. Ella siempre escucha." },
+      ],
+      Luminous: [
+        { title: "El Bautismo de Jesús en el Jordán", fruit: "Apertura al Espíritu Santo", scripture: "Este es mi Hijo amado, en quien me complazco. — Mt 3,17", meditation: "Jesús fue bautizado en el río Jordán. ¡Dios Padre dijo: 'Este es mi Hijo amado'! Cuando fuiste bautizado, Dios dijo lo mismo de TI. ¡Eres hijo amado de Dios!" },
+        { title: "Las Bodas de Caná", fruit: "A Jesús por María", scripture: "Su madre dijo a los sirvientes: «Haced lo que él os diga». — Jn 2,5", meditation: "En una fiesta de bodas, se acabó la bebida. María se lo dijo a Jesús, ¡y Él convirtió el agua en el mejor vino! María siempre lleva nuestras necesidades a Jesús." },
+        { title: "El Anuncio del Reino", fruit: "Conversión", scripture: "El reino de Dios está cerca. Convertíos y creed en el Evangelio. — Mc 1,15", meditation: "Jesús le dijo a todos que el Reino de Dios está aquí. ¡Es un reino de amor, bondad y perdón! Cada vez que eres amable con alguien, ayudas a construir el Reino de Dios." },
+        { title: "La Transfiguración", fruit: "Deseo de santidad", scripture: "Su rostro brillaba como el sol y sus vestidos se volvieron blancos como la luz. — Mt 17,2", meditation: "En una montaña, ¡el rostro de Jesús brilló como el sol! Sus amigos vieron lo increíble que Él es de verdad. Dios nos muestra cosas hermosas para ayudarnos a seguir adelante en los días difíciles." },
+        { title: "La Institución de la Eucaristía", fruit: "Adoración", scripture: "Esto es mi cuerpo, que se entrega por vosotros; haced esto en memoria mía. — Lc 22,19", meditation: "En la Última Cena, Jesús tomó el pan y dijo: 'Esto es mi cuerpo.' ¡Nos dio el regalo más especial: Él mismo! Cada vez que vas a Misa, Jesús está realmente ahí." },
+      ],
+    },
+    commandmentExam: [
+      { commandment: "1.º — Amarás a Dios sobre todas las cosas.", questions: ["¿Me acuerdo de rezar todos los días?", "¿Pongo atención en la Misa?", "¿Confío en Dios cuando las cosas son difíciles?", "¿Pongo a Dios primero, antes que los juguetes, juegos o pantallas?"] },
+      { commandment: "2.º — Usarás el nombre de Dios con amor.", questions: ["¿Digo el nombre de Dios con respeto?", "¿Uso el nombre de Jesús solo para rezar, nunca como mala palabra?", "¿Cumplo mis promesas?"] },
+      { commandment: "3.º — Santificarás las fiestas.", questions: ["¿Voy a Misa todos los domingos?", "¿Pongo atención y participo en la Misa?", "¿Hago del domingo un día especial para Dios y la familia?"] },
+      { commandment: "4.º — Honrarás a tu padre y a tu madre.", questions: ["¿Obedezco a mis papás y maestros?", "¿Soy respetuoso incluso cuando no estoy de acuerdo?", "¿Ayudo en casa sin que me lo pidan?", "¿Soy amable con mis hermanos y hermanas?"] },
+      { commandment: "5.º — Respetarás la vida.", questions: ["¿He golpeado, pateado o lastimado a alguien?", "¿He dicho cosas hirientes para hacer sentir mal a alguien?", "¿He acosado o dejado a alguien fuera a propósito?", "¿He sido cruel con los animales?", "¿Perdono a los demás cuando me piden perdón?"] },
+      { commandment: "6.º — Serás puro en tus acciones.", questions: ["¿Trato mi cuerpo y el de los demás con respeto?", "¿Elijo programas, juegos y páginas web que son buenos para mí?"] },
+      { commandment: "7.º — No robarás.", questions: ["¿He tomado algo que no es mío?", "¿He hecho trampa en un examen o en un juego?", "¿Cuido las cosas de los demás?", "¿He compartido con los que tienen menos?"] },
+      { commandment: "8.º — Siempre dirás la verdad.", questions: ["¿He dicho una mentira?", "¿He culpado a alguien por algo que yo hice?", "¿He dicho cosas feas de alguien a sus espaldas?", "¿Guardo los secretos que alguien me confió?"] },
+      { commandment: "9.º — Tendrás pensamientos limpios.", questions: ["¿Intento pensar cosas buenas sobre los demás?", "¿Evito cosas que me ponen ideas malas en la cabeza?"] },
+      { commandment: "10.º — Estarás contento por los demás.", questions: ["¿He tenido celos de lo que otros tienen?", "¿Estoy agradecido por lo que Dios me ha dado?", "¿Deseo tener las cosas de otros en vez de agradecer las mías?", "¿Me alegro por mis amigos cuando les pasan cosas buenas?"] },
+    ],
+    examenSteps: [
+      { title: "Dios Está Aquí", icon: "✦", instruction: "Cierra los ojos. Respira profundo. ¡Dios está sentado justo a tu lado! Te quiere más de lo que puedas imaginar.", prompt: "\"Dios, sé que estás aquí conmigo. Ayúdame a hablar contigo.\"", questions: ["Respira profundo y quédate quieto un momento. Imagina a Dios sonriéndote."] },
+      { title: "Gracias", icon: "♡", instruction: "Piensa en tu día. ¿Qué cosas buenas pasaron? Tal vez alguien fue amable contigo, o comiste algo rico, o te reíste mucho.", prompt: "\"Todo lo bueno viene de Dios.\" — Santiago 1,17", questions: ["¿Qué te hizo sonreír hoy?", "¿Por quién estás agradecido hoy?", "¿Hay algo bueno que pasó y casi se te olvida?"] },
+      { title: "Mi Día", icon: "◈", instruction: "Pasa tu día como una película en tu cabeza. ¿Cuándo te sentiste feliz? ¿Cuándo te sentiste triste o enojado?", prompt: "Solo observa — Dios está viendo la película contigo.", questions: ["¿Cuándo te sentiste más feliz hoy?", "¿Hubo algún momento en que te sentiste triste, enojado o solo?", "¿Sentiste a Dios cerca de ti en algún momento?"] },
+      { title: "Perdón", icon: "✝", instruction: "¿Hubo algún momento hoy en que no fuiste tu mejor versión? ¡Está bien! Dios es como el mejor papá del mundo — siempre te perdona. Solo cuéntale.", prompt: "\"Dios siempre nos perdona cuando le pedimos perdón.\" — de Isaías 1,18", questions: ["¿Fui poco amable con alguien hoy?", "¿Hice algo que sé que estaba mal?", "¿Hay alguien a quien necesito pedirle perdón?"] },
+      { title: "Mañana", icon: "☀", instruction: "¿Qué pasa mañana? ¿Hay algo que te preocupa? ¡Pídele a Dios que te ayude a ser valiente y amable!", prompt: "\"¡El amor de Dios es nuevo cada mañana!\" — Lamentaciones 3,23", questions: ["¿En qué necesitas la ayuda de Dios mañana?", "¿Cómo puedes ser amable con alguien mañana?", "¡Reza y pídele a Dios que esté contigo mañana!"] },
+    ],
+    saintsQuotes: [
+      { quote: "Sé quien Dios quiso que fueras y prenderás fuego al mundo.", saint: "Santa Catalina de Siena" },
+      { quote: "Reza, espera y no te preocupes.", saint: "San Pío de Pietrelcina" },
+      { quote: "Haz cosas pequeñas con gran amor.", saint: "Santa Teresa de Calcuta" },
+      { quote: "La alegría es la señal más segura de que Dios está con nosotros.", saint: "Santa Teresa de Ávila" },
+      { quote: "¡Ten paciencia con todos, y sobre todo contigo!", saint: "San Francisco de Sales" },
+      { quote: "Dios nos quiere a cada uno como si fuéramos el único.", saint: "San Agustín" },
+      { quote: "¡Nada es imposible para Dios!", saint: "Santa Teresita de Lisieux" },
+      { quote: "Cada día es una nueva oportunidad para ser santo.", saint: "San Juan Pablo II" },
+    ],
+  };
+}
+
+/** Shallow-merge nested objects (2 levels deep). */
+function mergeNested(base, overlay) {
+  if (!overlay) return base;
+  const result = { ...base };
+  for (const key of Object.keys(overlay)) {
+    if (
+      typeof overlay[key] === "object" && !Array.isArray(overlay[key]) && overlay[key] !== null &&
+      typeof base[key] === "object" && !Array.isArray(base[key]) && base[key] !== null
+    ) {
+      result[key] = { ...base[key], ...overlay[key] };
+    } else {
+      result[key] = overlay[key];
+    }
+  }
+  return result;
+}
+
 /**
- * Get the full translations object for a locale.
+ * Get the full translations object for a locale, optionally in child mode.
  * Content (prayers, litany, mysteries, etc.) falls back to English if locale has no content.
+ * In child mode, UI strings and content are overlaid with kid-friendly versions.
  * @param {string} locale - One of LOCALES.EN_US, LOCALES.ES_ES
+ * @param {boolean} [childMode=false]
  * @returns {typeof enUS}
  */
-export function getTranslations(locale) {
+export function getTranslations(locale, childMode = false) {
   const m = messages[locale] || messages[DEFAULT_LOCALE];
   const def = messages[DEFAULT_LOCALE];
-  return {
+  let result = {
     ...m,
     content: m.content !== undefined ? m.content : def.content,
   };
+  if (childMode) {
+    const overlay = childMessages[locale] || childMessages[DEFAULT_LOCALE];
+    result = mergeNested(result, overlay);
+    const childContent = locale === LOCALES.ES_ES ? getEsChildContent() : getEnChildContent();
+    result.content = { ...result.content, ...childContent };
+  }
+  return result;
 }
 
 /**
